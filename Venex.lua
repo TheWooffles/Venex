@@ -81,7 +81,7 @@ MiscRG:AddButton('Rejoin Server', function()
 end)
 
 local DexLoaded = false
-ScMiscRG:AddButton('Execute Dex Debugger', function()
+MiscRG:AddButton('Execute Dex Debugger', function()
     if DexLoaded then return notify('Dex Debugger already executed!', 3) end
     DexLoaded = true
     notify('[Venex] Info : Executing Dex', 3)
