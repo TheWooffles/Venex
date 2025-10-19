@@ -28,12 +28,12 @@ end
 
 --// Libraries
 local repo         = 'https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexUI/'
-local Sense        = safeLoad('https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexESP/Venex.lua')
+--local Sense        = safeLoad('https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexESP/Venex.lua')
 local Library      = safeLoad(repo .. 'Library.lua')
 local ThemeManager = safeLoad(repo .. 'addons/ThemeManager.lua')
 local SaveManager  = safeLoad(repo .. 'addons/SaveManager.lua')
 
-if not (Library and ThemeManager and SaveManager and Sense) then
+if not (Library and ThemeManager and SaveManager) then
     warn("[Venex] One or more libs failed to load. Some features may be unavailable.")
 end
 
