@@ -36,7 +36,7 @@ local TweenService        = game:GetService("TweenService")
 local MarketplaceService  = game:GetService("MarketplaceService")
 local StarterGui          = game:GetService("StarterGui")
 local Stats               = game:GetService("Stats")
-local MenuColor           = Color3.fromRGB(255, 255, 255)
+local ACCENT              = Color3.fromRGB(255, 255, 255)
 
 --// Libraries
 local repo         = 'https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexUI/'
