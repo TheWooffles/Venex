@@ -1,0 +1,9 @@
+# Venex Script
+---
+
+## 🚀 Loadstring
+```lua
+-- Main Script
+loadstring(game:HttpGet(''))()
+```
+---
