@@ -71,9 +71,9 @@ local Tabs = {
     Misc     = Window:AddTab('Misc'),
     Settings = Window:AddTab('Settings')
 }
-local AimbotLG = Tabs.Misc:AddLeftGroupbox('Aimbot')
-local EspLG    = Tabs.Misc:AddLeftGroupbox('Esp')
-local MiscRG = Tabs.Misc:AddRightGroupbox('Tools')
+local AimbotLG = Tabs.Combat:AddLeftGroupbox('Aimbot')
+local EspLG    = Tabs.Visuals:AddLeftGroupbox('Esp')
+local MiscRG   = Tabs.Misc:AddRightGroupbox('Tools')
 
 MiscRG:AddButton('Rejoin Server', function()
     notify('Rejoining current server...', 3)
@@ -111,8 +111,6 @@ end);
 
 Library:OnUnload(function()
     WatermarkConnection:Disconnect()
-    Sense.Unload()
-
     print('Unloaded!')
     Library.Unloaded = true
     _G.VenexExecuted = false
@@ -122,7 +120,7 @@ end)
 local MenuGroup = Tabs.Settings:AddLeftGroupbox('Menu')
 MenuGroup:AddButton('Destroy', function() Library:Unload() end)
 MenuGroup:AddLabel('Menu Bind'):AddKeyPicker('MenuKeybind', { Default = 'End', NoUI = true, Text = 'Menu keybind' })
-Library.ToggleKeybind = Options.MenuKeybind -- Allows you to have a custom keybind for the menu
+Library.ToggleKeybind = Options.MenuKeybind
 
 Sense.Load()
 ThemeManager:SetLibrary(Library)
