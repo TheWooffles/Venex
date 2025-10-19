@@ -36,18 +36,16 @@ local TweenService        = game:GetService("TweenService")
 local MarketplaceService  = game:GetService("MarketplaceService")
 local StarterGui          = game:GetService("StarterGui")
 local Stats               = game:GetService("Stats")
-local ACCENT              = Color3.fromRGB(255, 255, 255)
-local Camera              = Workspace.CurrentCamera
-local LocalPlayer         = Players.LocalPlayer
+local MenuColor           = Color3.fromRGB(255, 255, 255)
 
 --// Libraries
-local repo         = 'https://gitlab.com/Wooffles/cncspt/-/raw/main/Libraries/Interface/'   --'https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexUI/'
+local repo         = 'https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexUI/'
 local Sense        = safeLoad('https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexESP/Venex.lua')
 local Library      = safeLoad(repo .. 'Library.lua')
 local ThemeManager = safeLoad(repo .. 'addons/ThemeManager.lua')
 local SaveManager  = safeLoad(repo .. 'addons/SaveManager.lua')
 
-if not (Library and ThemeManager and SaveManager) then
+if not (Library and ThemeManager and SaveManager and Sense) then
     warn("[Venex] One or more libs failed to load. Some features may be unavailable.")
 end
 
@@ -66,41 +64,16 @@ local Window = Library:CreateWindow({
     MenuFadeTime = 0.2
 })
 
-local Window, Tabs, Toggles, Options
-if Library and Library.CreateWindow then
-    local okW
-    okW, Window = pcall(Library.CreateWindow, Library, {
-        Title = 'Venex<font color="rgb(255, 0, 0)"> Vantage</font>',
-        Center = true,
-        AutoShow = true,
-        TabPadding = 8,
-        MenuFadeTime = 0.2
-    })
-    if okW and Window then
-        Library.ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-        Library:SetWatermarkVisibility(true)
-        notify('[Venex] Welcome ' .. LocalPlayer.Name .. '!', 5)
-        Tabs = {
-            Combat   = Window:AddTab('Combat'),
-            Visuals  = Window:AddTab('Visuals'),
-            Player   = Window:AddTab('Player'),
-            Misc     = Window:AddTab('Misc'),
-            Settings = Window:AddTab('Settings')
-        }
-        Toggles = _G.Toggles or getgenv().Toggles or Toggles
-        Options = _G.Options or getgenv().Options or Options
-    end
-end
-
+local Tabs = {
+    Combat   = Window:AddTab('Combat'),
+    Visuals  = Window:AddTab('Visuals'),
+    Player   = Window:AddTab('Player'),
+    Misc     = Window:AddTab('Misc'),
+    Settings = Window:AddTab('Settings')
+}
 local AimbotLG = Tabs.Combat:AddLeftGroupbox('Aimbot')
 local EspLG    = Tabs.Visuals:AddLeftGroupbox('Esp')
 local MiscRG   = Tabs.Misc:AddRightGroupbox('Tools')
-
---// Sense ESP
-if Sense and Sense.Load and not Sense.__loaded then
-    local ok = pcall(function() Sense:Load() end)
-    if ok then Sense.__loaded = true end
-end
 
 MiscRG:AddButton('Rejoin Server', function()
     notify('Rejoining current server...', 3)
@@ -148,18 +121,6 @@ local MenuGroup = Tabs.Settings:AddLeftGroupbox('Menu')
 MenuGroup:AddButton('Destroy', function() Library:Unload() end)
 MenuGroup:AddLabel('Menu Bind'):AddKeyPicker('MenuKeybind', { Default = 'End', NoUI = true, Text = 'Menu keybind' })
 Library.ToggleKeybind = Options.MenuKeybind
-
---// Options Accent lock to ACCENT (if present)
-RunService.RenderStepped:Connect(function()
-    if Library and Library.Watermark then
-        Library.Watermark.Position = UDim2.new(0, 0, 0, 5)
-    end
-    if Options and Options.AccentColor and Options.AccentColor.Value and Options.AccentColor.SetValueRGB then
-        if Options.AccentColor.Value ~= ACCENT then
-            Options.AccentColor:SetValueRGB(ACCENT)
-        end
-    end
-end)
 
 Sense.Load()
 ThemeManager:SetLibrary(Library)
