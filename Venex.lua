@@ -172,7 +172,7 @@ LeftGroupBox:AddInput('MyTextbox', {
 Options.MyTextbox:OnChanged(function()
     print('Text updated. New text:', Options.MyTextbox.Value)
 end)
-print('AccentColor: '..Library.AccentColor.Value)
+print('AccentColor: '..Library.AccentColor)
 
 -- Groupbox:AddDropdown
 -- Arguments: Idx, Info
