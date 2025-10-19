@@ -62,8 +62,6 @@ local Tabs = {
     Settings = Window:AddTab('Settings')
 }
 
-Library.AccentColor = MenuColor
-
 local AimbotLG = Tabs.Misc:AddLeftGroupbox('Aimbot')
 local EnemyEspLG = Tabs.Misc:AddLeftGroupbox('Enemy ESP')
 local AllyEspRG = Tabs.Misc:AddRightGroupbox('Ally ESP')
@@ -246,25 +244,25 @@ ScMiscRG:AddButton('Execute Dex Debugger', function()
     notify('[Venex] Info : Executed!', 3)
 end)
 
-Library:SetWatermarkVisibility(true)
-local FrameTimer = tick()
-local FrameCounter = 0;
-local FPS = 60;
+-- Library:SetWatermarkVisibility(true)
+-- local FrameTimer = tick()
+-- local FrameCounter = 0;
+-- local FPS = 60;
 
-local WatermarkConnection = game:GetService('RunService').RenderStepped:Connect(function()
-    FrameCounter += 1;
+-- local WatermarkConnection = game:GetService('RunService').RenderStepped:Connect(function()
+--     FrameCounter += 1;
 
-    if (tick() - FrameTimer) >= 1 then
-        FPS = FrameCounter;
-        FrameTimer = tick();
-        FrameCounter = 0;
-    end;
+--     if (tick() - FrameTimer) >= 1 then
+--         FPS = FrameCounter;
+--         FrameTimer = tick();
+--         FrameCounter = 0;
+--     end;
 
-    Library:SetWatermark(('Venex | %s fps | %s ms'):format(
-        math.floor(FPS),
-        math.floor(game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue())
-    ));
-end);
+--     Library:SetWatermark(('Venex | %s fps | %s ms'):format(
+--         math.floor(FPS),
+--         math.floor(game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue())
+--     ));
+-- end);
 
 Library:OnUnload(function()
     WatermarkConnection:Disconnect()
