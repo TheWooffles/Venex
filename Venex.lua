@@ -53,8 +53,6 @@ local Window = Library:CreateWindow({
     TabPadding = 8,
     MenuFadeTime = 0.2
 })
--- Assuming Options is a global object provided by the injected environment/library.
-Options.AccentColor:SetValueRGB(MenuColor)
 
 local Tabs = {
     Combat   = Window:AddTab('Combat'),
@@ -270,6 +268,12 @@ local WatermarkConnection = game:GetService('RunService').RenderStepped:Connect(
         math.floor(game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue())
     ));
 end);
+local success, err = pcall(function()
+    Options.AccentColor:SetValueRGB(MenuColor)
+end)
+if not success then
+    warn("[Venex] Error: Failed to set AccentColor, 'Options' or 'Options.AccentColor' is nil.")
+end
 
 Library:OnUnload(function()
     WatermarkConnection:Disconnect()
