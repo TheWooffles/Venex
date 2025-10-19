@@ -10,11 +10,12 @@ local Window = Library:CreateWindow({
     TabPadding = 8,
     MenuFadeTime = 0.2
 })
+
 local Tabs = {
     Main = Window:AddTab('Main'),
     Settings = Window:AddTab('Settings'),
 }
-Options.AccentColor:SetValueRGB(Color3.fromRGB(255, 255, 255))
+
 local LeftGroupBox = Tabs.Main:AddLeftGroupbox('Groupbox')
 
 -- We can also get our Main tab via the following code:
@@ -426,7 +427,7 @@ ThemeManager:ApplyToTab(Tabs.Settings)
 -- which has been marked to be one that auto loads!
 SaveManager:LoadAutoloadConfig()
 
-
+Options.AccentColor:SetValueRGB(Color3.fromRGB(255, 255, 255))
 
 -- if _G.VenexExecuted then
 --     return warn("[Venex] Error : Already Loaded!")
