@@ -37,6 +37,8 @@ local MarketplaceService  = game:GetService("MarketplaceService")
 local StarterGui          = game:GetService("StarterGui")
 local Stats               = game:GetService("Stats")
 local ACCENT              = Color3.fromRGB(255, 255, 255)
+local Camera              = Workspace.CurrentCamera
+local LocalPlayer         = Players.LocalPlayer
 
 --// Libraries
 local repo         = 'https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexUI/'
@@ -68,7 +70,7 @@ local Window, Tabs, Toggles, Options
 if Library and Library.CreateWindow then
     local okW
     okW, Window = pcall(Library.CreateWindow, Library, {
-        Title = 'Cncspt<font color="rgb(100, 70, 200)"> Main</font>',
+        Title = 'Venex<font color="rgb(255, 0, 0)"> Vantage</font>',
         Center = true,
         AutoShow = true,
         TabPadding = 8,
