@@ -10,12 +10,11 @@ local Window = Library:CreateWindow({
     TabPadding = 8,
     MenuFadeTime = 0.2
 })
-Options.AccentColor:SetValueRGB(Color3.fromRGB(255, 255, 255))
 local Tabs = {
     Main = Window:AddTab('Main'),
     Settings = Window:AddTab('Settings'),
 }
-
+Options.AccentColor:SetValueRGB(Color3.fromRGB(255, 255, 255))
 local LeftGroupBox = Tabs.Main:AddLeftGroupbox('Groupbox')
 
 -- We can also get our Main tab via the following code:
