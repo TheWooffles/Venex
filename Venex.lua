@@ -6,6 +6,8 @@ end
 local function safeHttpGet(url)
     local ok, res = pcall(game.HttpGet, game, url)
     if ok then return res end
+    -- The original code has an issue: `game.HttpGet` might not exist depending on the context (e.g., if it's an environment function passed as a global). 
+    -- Assuming `HttpGet` is a global function, the pcall should use it directly, but this is a common pattern in injectors.
     warn("[Venex] Error : HttpGet failed:", url, res)
     return nil
 end
@@ -27,11 +29,11 @@ end
 local MenuColor = Color3.fromRGB(255, 255, 255)
 
 --// Libraries
-local repo         = 'https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexUI/'
-local Sense        = safeLoad('https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexESP/Venex.lua')
-local Library      = safeLoad(repo .. 'Library.lua')
-local ThemeManager = safeLoad(repo .. 'addons/ThemeManager.lua')
-local SaveManager  = safeLoad(repo .. 'addons/SaveManager.lua')
+local repo          = 'https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexUI/'
+local Sense         = safeLoad('https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexESP/Venex.lua')
+local Library       = safeLoad(repo .. 'Library.lua')
+local ThemeManager  = safeLoad(repo .. 'addons/ThemeManager.lua')
+local SaveManager   = safeLoad(repo .. 'addons/SaveManager.lua')
 
 if not (Library and ThemeManager and SaveManager) then
     warn("[Venex] One or more libs failed to load. Some features may be unavailable.")
@@ -51,6 +53,7 @@ local Window = Library:CreateWindow({
     TabPadding = 8,
     MenuFadeTime = 0.2
 })
+-- Assuming Options is a global object provided by the injected environment/library.
 Options.AccentColor:SetValueRGB(MenuColor)
 
 local Tabs = {
@@ -60,11 +63,16 @@ local Tabs = {
     Misc     = Window:AddTab('Misc'),
     Settings = Window:AddTab('Settings')
 }
+
+-- Fixed Groupbox Names/Layout for clarity:
+-- Aimbot and Enemy ESP on Left
 local AimbotLG = Tabs.Misc:AddLeftGroupbox('Aimbot')
 local EnemyEspLG = Tabs.Misc:AddLeftGroupbox('Enemy ESP')
-local AllyEspLG  = Tabs.Misc:AddRightGroupbox('Ally ESP')
-local ScMiscRG   = Tabs.Misc:AddRightGroupbox('Scripts') -- Kept the original Scripts group for completeness
+-- Ally ESP and Scripts on Right
+local AllyEspRG = Tabs.Misc:AddRightGroupbox('Ally ESP') -- Renamed from AllyEspLG for consistency
+local ScMiscRG   = Tabs.Misc:AddRightGroupbox('Scripts')
 
+-- --- Enemy ESP (EnemyEspLG) ---
 -- Master Toggle
 EnemyEspLG:AddToggle('EnemyEspEnabled', {
     Text = 'Enable', Default = false, Tooltip = 'Toggle all Enemy ESP features.',
@@ -81,7 +89,7 @@ EnemyEspLG:AddToggle('EspEnemyBox3d', {
     Callback = function(v) Sense.teamSettings.enemy.box3d = v end
 })
 EnemyEspLG:AddLabel('Box Color'):AddColorPicker('EspEnemyBoxColor', {
-    Text = 'Box Color', Default = Color3.fromRGB(255,0,0), Tooltip = 'Color of the enemy ESP box.', -- Changed default to red for enemies
+    Text = 'Box Color', Default = Color3.fromRGB(255,0,0), Tooltip = 'Color of the enemy ESP box.', 
     Callback = function(v) Sense.teamSettings.enemy.boxColor = v end
 })
 EnemyEspLG:AddSlider('EspEnemyBoxThickness', {
@@ -115,7 +123,7 @@ EnemyEspLG:AddLabel('Health Color'):AddColorPicker('EspEnemyHealthColor', {
     Callback = function(v) Sense.teamSettings.enemy.healthColor = v end
 })
 
--- Tracers (Uncommented and moved to logical section)
+-- Tracers
 EnemyEspLG:AddToggle('EspEnemyTracer', {
     Text = 'Tracers', Default = false, Tooltip = 'Draw a line to the enemy.',
     Callback = function(v) Sense.teamSettings.enemy.tracer = v end
@@ -138,7 +146,7 @@ EnemyEspLG:AddToggle('EspEnemyChamsVisible', {
     Text = 'Chams Visible Check', Default = false, Tooltip = 'Only color chams when the enemy is visible.',
     Callback = function(v) Sense.teamSettings.enemy.chamsVisibleOnly = v end
 })
-EnemyEspLG:AddToggle('EspEmemyWeapon', {
+EnemyEspLG:AddToggle('EspEnemyWeapon', { -- Corrected typo: EspEmemyWeapon -> EspEnemyWeapon
     Text = 'Weapon/Tool', Default = false, Tooltip = 'Show the enemy\'s held weapon or tool.',
     Callback = function(v) Sense.teamSettings.enemy.weapon = v end
 })
@@ -151,81 +159,85 @@ EnemyEspLG:AddSlider('EspEnemyChamsTransparency', {
     Callback = function(v) Sense.teamSettings.enemy.chamsTransparency = v end
 })
 
+-- --- Ally ESP (AllyEspRG) ---
 -- Master Toggle
-AllyEspLG:AddToggle('EspAlly', {
+AllyEspRG:AddToggle('EspAlly', {
     Text = 'Enable', Default = false, Tooltip = 'Toggle all Ally ESP features.',
     Callback = function(v) Sense.teamSettings.friendly.enabled = v end
 })
 
 -- Box Settings
-AllyEspLG:AddToggle('EspAllyBox', {
+AllyEspRG:AddToggle('EspAllyBox', {
     Text = 'Box 2D', Default = false, Tooltip = 'Draw a 2D box around allies.',
     Callback = function(v) Sense.teamSettings.friendly.box = v end
 })
--- Removed Ally Box 3D for brevity and consistency, as it wasn't a separate toggle in the original Ally group.
-AllyEspLG:AddLabel('Box Color'):AddColorPicker('EspAllyBoxColor', {
+AllyEspRG:AddToggle('EspAllyBox3d', { -- Added missing Ally Box 3D toggle for feature parity
+    Text = 'Box 3D', Default = false, Tooltip = 'Draw a 3D box around allies.',
+    Callback = function(v) Sense.teamSettings.friendly.box3d = v end
+})
+AllyEspRG:AddLabel('Box Color'):AddColorPicker('EspAllyBoxColor', {
     Text = 'Box Color', Default = Color3.fromRGB(80,200,255), Tooltip = 'Color of the friendly ESP box.',
     Callback = function(v) Sense.teamSettings.friendly.boxColor = v end
 })
-AllyEspLG:AddSlider('EspAllyBoxThickness', {
+AllyEspRG:AddSlider('EspAllyBoxThickness', {
     Text = 'Box Thickness', Default = 1, Min = 1, Max = 5, Rounding = 0, Tooltip = 'Thickness of the friendly ESP box.',
     Callback = function(v) Sense.teamSettings.friendly.boxThickness = v end
 })
-AllyEspLG:AddToggle('EspAllyBoxOutline', {
+AllyEspRG:AddToggle('EspAllyBoxOutline', {
     Text = 'Box Outline', Default = true, Tooltip = 'Add an outline to the friendly ESP box.',
     Callback = function(v) Sense.teamSettings.friendly.boxOutline = v end
 })
 
 -- Info & Health
-AllyEspLG:AddToggle('EspAllyName', {
+AllyEspRG:AddToggle('EspAllyName', {
     Text = 'Name', Default = false, Tooltip = 'Show friendly name.',
     Callback = function(v) Sense.teamSettings.friendly.name = v end
 })
-AllyEspLG:AddLabel('Name Color'):AddColorPicker('EspAllyNameColor', {
+AllyEspRG:AddLabel('Name Color'):AddColorPicker('EspAllyNameColor', {
     Text = 'Name Color', Default = Color3.fromRGB(255,255,255), Tooltip = 'Color of friendly name text.',
     Callback = function(v) Sense.teamSettings.friendly.textColor = v end
 })
-AllyEspLG:AddToggle('EspAllyHealthBar', {
+AllyEspRG:AddToggle('EspAllyHealthBar', {
     Text = 'Health Bar', Default = false, Tooltip = 'Show friendly health as a bar.',
     Callback = function(v) Sense.teamSettings.friendly.healthBar = v end
 })
-AllyEspLG:AddToggle('EspAllyHealthText', {
+AllyEspRG:AddToggle('EspAllyHealthText', {
     Text = 'Health Text', Default = false, Tooltip = 'Show friendly health as a number.',
     Callback = function(v) Sense.teamSettings.friendly.healthText = v end
 })
-AllyEspLG:AddLabel('Health Color'):AddColorPicker('EspAllyHealthColor', {
+AllyEspRG:AddLabel('Health Color'):AddColorPicker('EspAllyHealthColor', {
     Text = 'Health Color', Default = Color3.fromRGB(0,255,0), Tooltip = 'Color of friendly health display.',
     Callback = function(v) Sense.teamSettings.friendly.healthColor = v end
 })
 
 -- Tracers
-AllyEspLG:AddToggle('EspAllyTracer', {
+AllyEspRG:AddToggle('EspAllyTracer', {
     Text = 'Tracers', Default = false, Tooltip = 'Draw a line to the ally.',
     Callback = function(v) Sense.teamSettings.friendly.tracer = v end
 })
-AllyEspLG:AddLabel('Tracer Color'):AddColorPicker('EspAllyTracerColor', {
+AllyEspRG:AddLabel('Tracer Color'):AddColorPicker('EspAllyTracerColor', {
     Text = 'Tracer Color', Default = Color3.fromRGB(80,200,255), Tooltip = 'Color of the friendly tracer line.',
     Callback = function(v) Sense.teamSettings.friendly.tracerColor = v end
 })
-AllyEspLG:AddDropdown('EspAllyTracerOrigin', {
+AllyEspRG:AddDropdown('EspAllyTracerOrigin', {
     Text = 'Tracer Origin', Values = {'Bottom','Middle','Top'}, Default = 'Bottom', Tooltip = 'Where the tracer line starts from your screen.',
     Callback = function(v) Sense.teamSettings.friendly.tracerOrigin = v end
 })
 
 -- Chams
-AllyEspLG:AddToggle('EspAllyChams', {
+AllyEspRG:AddToggle('EspAllyChams', {
     Text = 'Chams', Default = false, Tooltip = 'Color allies through walls.',
     Callback = function(v) Sense.teamSettings.friendly.chams = v end
 })
-AllyEspLG:AddToggle('EspAllyChamsVisible', {
+AllyEspRG:AddToggle('EspAllyChamsVisible', {
     Text = 'Chams Visible Check', Default = false, Tooltip = 'Only color chams when the ally is visible.',
     Callback = function(v) Sense.teamSettings.friendly.chamsVisibleOnly = v end
 })
-AllyEspLG:AddLabel('Chams Color'):AddColorPicker('EspAllyChamsColor', {
+AllyEspRG:AddLabel('Chams Color'):AddColorPicker('EspAllyChamsColor', {
     Text = 'Chams Color', Default = Color3.fromRGB(0,170,255), Tooltip = 'Color for friendly chams.',
     Callback = function(v) Sense.teamSettings.friendly.chamsColor = v end
 })
-AllyEspLG:AddSlider('EspAllyChamsTransparency', {
+AllyEspRG:AddSlider('EspAllyChamsTransparency', {
     Text = 'Chams Transparency', Default = 0.25, Min = 0, Max = 1, Rounding = 2, Tooltip = 'Set the transparency level for chams.',
     Callback = function(v) Sense.teamSettings.friendly.chamsTransparency = v end
 })
