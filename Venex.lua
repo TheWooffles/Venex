@@ -133,3 +133,5 @@ SaveManager:BuildConfigSection(Tabs.Settings)
 ThemeManager:ApplyToTab(Tabs.Settings)
 SaveManager:LoadAutoloadConfig()
 _G.VenexExecuted = true
+
+notify('[Venex] Info : Executed!', 5)
