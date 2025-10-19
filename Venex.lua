@@ -61,8 +61,8 @@ local Tabs = {
     Misc     = Window:AddTab('Misc'),
     Settings = Window:AddTab('Settings')
 }
-Options = _G.Options or getgenv().Options or Options
-Options.AccentColor:SetValueRGB(MenuColor)
+-- Options = _G.Options or getgenv().Options or Options
+-- Options.AccentColor:SetValueRGB(MenuColor)
 
 -- Fixed Groupbox Names/Layout for clarity:
 -- Aimbot and Enemy ESP on Left
