@@ -61,6 +61,8 @@ local Tabs = {
     Misc     = Window:AddTab('Misc'),
     Settings = Window:AddTab('Settings')
 }
+Options = _G.Options or getgenv().Options or Options
+Options.AccentColor:SetValueRGB(MenuColor)
 
 -- Fixed Groupbox Names/Layout for clarity:
 -- Aimbot and Enemy ESP on Left
@@ -268,12 +270,6 @@ local WatermarkConnection = game:GetService('RunService').RenderStepped:Connect(
         math.floor(game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue())
     ));
 end);
-local success, err = pcall(function()
-    Options.AccentColor:SetValueRGB(MenuColor)
-end)
-if not success then
-    warn("[Venex] Error: Failed to set AccentColor, 'Options' or 'Options.AccentColor' is nil.")
-end
 
 Library:OnUnload(function()
     WatermarkConnection:Disconnect()
