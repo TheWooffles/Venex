@@ -3,6 +3,6 @@
 ## 🚀 Loadstring
 ```lua
 -- Main Script
-loadstring(game:HttpGet('https://raw.githubusercontent.com/TheWooffles/Vantage/refs/heads/main/Venex.lua'))()
+loadstring(game:HttpGet('https://raw.githubusercontent.com/TheWooffles/Venex/main/Venex.lua'))()
 ```
 ---
