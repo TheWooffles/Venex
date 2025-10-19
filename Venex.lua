@@ -61,19 +61,14 @@ local Tabs = {
     Misc     = Window:AddTab('Misc'),
     Settings = Window:AddTab('Settings')
 }
--- Options = _G.Options or getgenv().Options or Options
--- Options.AccentColor:SetValueRGB(MenuColor)
 
--- Fixed Groupbox Names/Layout for clarity:
--- Aimbot and Enemy ESP on Left
+Library.AccentColor = MenuColor
+
 local AimbotLG = Tabs.Misc:AddLeftGroupbox('Aimbot')
 local EnemyEspLG = Tabs.Misc:AddLeftGroupbox('Enemy ESP')
--- Ally ESP and Scripts on Right
-local AllyEspRG = Tabs.Misc:AddRightGroupbox('Ally ESP') -- Renamed from AllyEspLG for consistency
+local AllyEspRG = Tabs.Misc:AddRightGroupbox('Ally ESP')
 local ScMiscRG   = Tabs.Misc:AddRightGroupbox('Scripts')
 
--- --- Enemy ESP (EnemyEspLG) ---
--- Master Toggle
 EnemyEspLG:AddToggle('EnemyEspEnabled', {
     Text = 'Enable', Default = false, Tooltip = 'Toggle all Enemy ESP features.',
     Callback = function(v) Sense.teamSettings.enemy.enabled = v end
