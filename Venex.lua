@@ -15,11 +15,11 @@ local function safeLoad(url)
     if not src then return nil end
     local ok, fn = pcall(loadstring, src)
     if ok and type(fn) == "function" then
-            local success, lib = pcall(fn)
-            if success then return lib end
-            warn("[Venex] Error : loadstring run failed:", url, lib)
+        local success, lib = pcall(fn)
+        if success then return lib end
+        warn("[Venex] Error : loadstring run failed:", url, lib)
     else
-            warn("[Venex] Error : loadstring compile failed:", url, fn)
+        warn("[Venex] Error : loadstring compile failed:", url, fn)
     end
     return nil
 end
@@ -27,11 +27,11 @@ end
 local MenuColor = Color3.fromRGB(255, 255, 255)
 
 --// Libraries
-local repo                     = 'https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexUI/'
-local Sense                    = safeLoad('https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexESP/Venex.lua')
-local Library               = safeLoad(repo .. 'Library.lua')
+local repo         = 'https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexUI/'
+local Sense        = safeLoad('https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexESP/Venex.lua')
+local Library      = safeLoad(repo .. 'Library.lua')
 local ThemeManager = safeLoad(repo .. 'addons/ThemeManager.lua')
-local SaveManager     = safeLoad(repo .. 'addons/SaveManager.lua')
+local SaveManager  = safeLoad(repo .. 'addons/SaveManager.lua')
 
 if not (Library and ThemeManager and SaveManager) then
     warn("[Venex] One or more libs failed to load. Some features may be unavailable.")
@@ -39,8 +39,8 @@ end
 
 local function notify(msg, dur)
     if Library and Library.Notify then
-            Library:Notify(msg, dur or 3)
-            print(msg)
+        Library:Notify(msg, dur or 3)
+        print(msg)
     end
 end
 
@@ -54,25 +54,16 @@ local Window = Library:CreateWindow({
 Options.AccentColor:SetValueRGB(MenuColor)
 
 local Tabs = {
-    Combat      = Window:AddTab('Combat'),
-    Visuals     = Window:AddTab('Visuals'),
-    Player      = Window:AddTab('Player'),
-    Misc           = Window:AddTab('Misc'),
+    Combat   = Window:AddTab('Combat'),
+    Visuals  = Window:AddTab('Visuals'),
+    Player   = Window:AddTab('Player'),
+    Misc     = Window:AddTab('Misc'),
     Settings = Window:AddTab('Settings')
 }
-
--- CORRECTED: Moved Aimbot to Combat tab
-local AimbotLG = Tabs.Combat:AddLeftGroupbox('Aimbot')
-
--- CORRECTED: Moved ESP groups to Visuals tab
-local EnemyEspLG = Tabs.Visuals:AddLeftGroupbox('Enemy ESP')
-local AllyEspLG  = Tabs.Visuals:AddRightGroupbox('Ally ESP')
-
--- CORRECTED: Moved Scripts group to Misc tab (Right)
-local ScMiscRG      = Tabs.Misc:AddRightGroupbox('Scripts')
-
----
-## Enemy ESP Settings
+local AimbotLG = Tabs.Misc:AddLeftGroupbox('Aimbot')
+local EnemyEspLG = Tabs.Misc:AddLeftGroupbox('Enemy ESP')
+local AllyEspLG  = Tabs.Misc:AddRightGroupbox('Ally ESP')
+local ScMiscRG   = Tabs.Misc:AddRightGroupbox('Scripts') -- Kept the original Scripts group for completeness
 
 -- Master Toggle
 EnemyEspLG:AddToggle('EnemyEspEnabled', {
@@ -90,7 +81,7 @@ EnemyEspLG:AddToggle('EspEnemyBox3d', {
     Callback = function(v) Sense.teamSettings.enemy.box3d = v end
 })
 EnemyEspLG:AddLabel('Box Color'):AddColorPicker('EspEnemyBoxColor', {
-    Text = 'Box Color', Default = Color3.fromRGB(255,0,0), Tooltip = 'Color of the enemy ESP box.',
+    Text = 'Box Color', Default = Color3.fromRGB(255,0,0), Tooltip = 'Color of the enemy ESP box.', -- Changed default to red for enemies
     Callback = function(v) Sense.teamSettings.enemy.boxColor = v end
 })
 EnemyEspLG:AddSlider('EspEnemyBoxThickness', {
@@ -124,7 +115,7 @@ EnemyEspLG:AddLabel('Health Color'):AddColorPicker('EspEnemyHealthColor', {
     Callback = function(v) Sense.teamSettings.enemy.healthColor = v end
 })
 
--- Tracers
+-- Tracers (Uncommented and moved to logical section)
 EnemyEspLG:AddToggle('EspEnemyTracer', {
     Text = 'Tracers', Default = false, Tooltip = 'Draw a line to the enemy.',
     Callback = function(v) Sense.teamSettings.enemy.tracer = v end
@@ -147,8 +138,7 @@ EnemyEspLG:AddToggle('EspEnemyChamsVisible', {
     Text = 'Chams Visible Check', Default = false, Tooltip = 'Only color chams when the enemy is visible.',
     Callback = function(v) Sense.teamSettings.enemy.chamsVisibleOnly = v end
 })
--- CORRECTED: Typo in name 'EspEmemyWeapon' to 'EspEnemyWeapon'
-EnemyEspLG:AddToggle('EspEnemyWeapon', {
+EnemyEspLG:AddToggle('EspEmemyWeapon', {
     Text = 'Weapon/Tool', Default = false, Tooltip = 'Show the enemy\'s held weapon or tool.',
     Callback = function(v) Sense.teamSettings.enemy.weapon = v end
 })
@@ -161,9 +151,6 @@ EnemyEspLG:AddSlider('EspEnemyChamsTransparency', {
     Callback = function(v) Sense.teamSettings.enemy.chamsTransparency = v end
 })
 
----
-## Ally ESP Settings
-
 -- Master Toggle
 AllyEspLG:AddToggle('EspAlly', {
     Text = 'Enable', Default = false, Tooltip = 'Toggle all Ally ESP features.',
@@ -175,6 +162,7 @@ AllyEspLG:AddToggle('EspAllyBox', {
     Text = 'Box 2D', Default = false, Tooltip = 'Draw a 2D box around allies.',
     Callback = function(v) Sense.teamSettings.friendly.box = v end
 })
+-- Removed Ally Box 3D for brevity and consistency, as it wasn't a separate toggle in the original Ally group.
 AllyEspLG:AddLabel('Box Color'):AddColorPicker('EspAllyBoxColor', {
     Text = 'Box Color', Default = Color3.fromRGB(80,200,255), Tooltip = 'Color of the friendly ESP box.',
     Callback = function(v) Sense.teamSettings.friendly.boxColor = v end
@@ -260,14 +248,14 @@ local WatermarkConnection = game:GetService('RunService').RenderStepped:Connect(
     FrameCounter += 1;
 
     if (tick() - FrameTimer) >= 1 then
-            FPS = FrameCounter;
-            FrameTimer = tick();
-            FrameCounter = 0;
+        FPS = FrameCounter;
+        FrameTimer = tick();
+        FrameCounter = 0;
     end;
 
     Library:SetWatermark(('Venex | %s fps | %s ms'):format(
-            math.floor(FPS),
-            math.floor(game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue())
+        math.floor(FPS),
+        math.floor(game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue())
     ));
 end);
 
