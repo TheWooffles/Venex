@@ -28,6 +28,7 @@ end
 --// Services
 local Players             = game:GetService("Players")
 local TeleportService     = game:GetService("TeleportService")
+local TweenService        = game:GetService("TweenService")
 
 --// Variables
 local LocalPlayer    = Players.LocalPlayer
@@ -229,13 +230,13 @@ UIGradient.Color = ColorSequence.new({
 UIGradient.Rotation = 90
 UIGradient.Parent = Button
 
--- local hoverTI   = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
--- Button.MouseEnter:Connect(function()
---     TweenService:Create(Button, hoverTI, { BackgroundColor3 = Color3.fromRGB(220, 90, 90), BackgroundTransparency = 0.3 }):Play()
--- end)
--- Button.MouseLeave:Connect(function()
---     TweenService:Create(Button, hoverTI, { BackgroundColor3 = MenuColor, BackgroundTransparency = 0.5 }):Play()
--- end)
+local hoverTI = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+Button.MouseEnter:Connect(function()
+    TweenService:Create(Button, hoverTI, { BackgroundColor3 = Color3.fromRGB(220, 90, 90), BackgroundTransparency = 0.3 }):Play()
+end)
+Button.MouseLeave:Connect(function()
+    TweenService:Create(Button, hoverTI, { BackgroundColor3 = MenuColor, BackgroundTransparency = 0.5 }):Play()
+end)
 Button.MouseButton1Down:Connect(function()
     task.spawn(Library.Toggle)
 end)
