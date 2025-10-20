@@ -308,7 +308,8 @@ function EspObject:Update()
 			self.childCount = #children
 		end
 
-		self.corners = calculateCorners(getBoundingBox(cache))
+		local cframe, size = getBoundingBox(cache)
+        self.corners = calculateCorners(cframe, size)
 	elseif self.options.offScreenArrow then
 		local cframe = camera.CFrame
 		local flat = CFrame.fromMatrix(cframe.Position, cframe.RightVector, Vector3.new(0, 1, 0))
