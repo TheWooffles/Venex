@@ -29,12 +29,20 @@ end
 local Players             = game:GetService("Players")
 local TeleportService     = game:GetService("TeleportService")
 
-local LocalPlayer   = Players.LocalPlayer
+--// Variables
+local LocalPlayer = Players.LocalPlayer
+local DexLoaded = false
 
-local repo = 'https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexUI/'
-local Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
-local ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
-local SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
+--//Libraries
+local repo         = 'https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/'
+local Library      = Load(repo .. 'VenexUI/Library.lua')
+local ThemeManager = Load(repo .. 'VenexUI/addons/ThemeManager.lua')
+local SaveManager  = Load(repo .. 'VenexUI/addons/SaveManager.lua')
+local VenexEsp     = load(repo .. 'VenexESP/Venex.lua')
+
+if not (Library and ThemeManager and SaveManager and VenexEsp) then
+    Library:Notify("[Venex] One or more libs failed to load. Some features may be unavailable.")
+end
 
 local Window = Library:CreateWindow({
     Title = 'Venex<font color="rgb(255, 0, 0)"> Vantage</font>',
@@ -52,8 +60,9 @@ local Tabs = {
     Settings = Window:AddTab('Settings'),
 }
 
-local LGMisc = Tabs.Misc:AddLeftGroupbox('Scripts')
-local RGMisc = Tabs.Misc:AddRightGroupbox('Server')
+local LGVisuals = Tabs.Visuals:AddLeftGroupbox('Enemy Esp')
+local LGMisc    = Tabs.Misc:AddLeftGroupbox('Venex')
+local RGMisc    = Tabs.Misc:AddRightGroupbox('Tools')
 local MenuGroup = Tabs.Settings:AddLeftGroupbox('Menu')
 
 RGMisc:AddButton('Rejoin Server', function()
@@ -61,9 +70,9 @@ RGMisc:AddButton('Rejoin Server', function()
     wait(0.5)
     TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
 end)
-local DexLoaded = false
-LGMisc:AddButton('Execute Dex', function()
-    if DexLoaded then return notify('Dex Debugger already executed!', 3) end
+
+RGMisc:AddButton('Execute Dex', function()
+    if DexLoaded then return notify('Dex already executed!', 3) end
     DexLoaded = true
     Library:Notify('[Venex] Info : Executing Dex', 3)
     Load('https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexDEX/DexMobile.lua')
