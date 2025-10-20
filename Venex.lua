@@ -81,24 +81,24 @@ RGMisc:AddButton('Rejoin Server', function()
 end)
 
 RGMisc:AddButton('Server Hop', function()
-        Library:Notify('Searching for another server...', 5)
-        local ok, res = pcall(function()
-            local s = safeHttpGet(string.format("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Desc&limit=100", game.PlaceId))
-            return s and HttpService:JSONDecode(s) or nil
-        end)
-        if ok and res and res.data then
-            for _, server in ipairs(res.data) do
-                if server.playing < server.maxPlayers and server.id ~= game.JobId then
-                    Library:Notify('Joining a new server...', 3)
-                    TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
-                    return
-                end
-            end
-            Library:Notify('No other servers found.', 3)
-        else
-            Library:Notify('Failed to fetch server list.', 5)
-        end
+    Library:Notify('Searching for another server...', 5)
+    local ok, res = pcall(function()
+        local s = safeHttpGet(string.format("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Desc&limit=100", game.PlaceId))
+        return s and HttpService:JSONDecode(s) or nil
     end)
+    if ok and res and res.data then
+        for _, server in ipairs(res.data) do
+            if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                Library:Notify('Joining a new server...', 3)
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
+                return
+            end
+        end
+        Library:Notify('No other servers found.', 3)
+    else
+        Library:Notify('Failed to fetch server list.', 5)
+    end
+end)
 
 RGMisc:AddDivider()
 
@@ -161,57 +161,3 @@ Options.AccentColor:SetValueRGB(Color3.fromRGB(255, 255, 255))
 Library.Watermark.Position = UDim2.new(0, 0, 0, 5)
 _G.VenexExecuted = true
 Library:Notify('[Venex] Info : Executed!', 5)
-
--- --//Load Funtions
--- local function safeHttpGet(url)
---     local ok, res = pcall(game.HttpGet, game, url)
---     if ok then return res end
---     warn("[Venex] Error : HttpGet failed:", url, res)
---     return nil
--- end
-
--- local function safeLoad(url)
---     local src = safeHttpGet(url)
---     if not src then return nil end
---     local ok, fn = pcall(loadstring, src)
---     if ok and type(fn) == "function" then
---         local success, lib = pcall(fn)
---         if success then return lib end
---         warn("[Venex] Error : loadstring run failed:", url, lib)
---     else
---         warn("[Venex] Error : loadstring compile failed:", url, fn)
---     end
---     return nil
--- end
-
--- --// Services
--- local Players             = game:GetService("Players")
--- local RunService          = game:GetService("RunService")
--- local Workspace           = game:GetService("Workspace")
--- local UserInputService    = game:GetService("UserInputService")
--- local TeleportService     = game:GetService("TeleportService")
--- local HttpService         = game:GetService("HttpService")
--- local SoundService        = game:GetService("SoundService")
--- local TweenService        = game:GetService("TweenService")
--- local MarketplaceService  = game:GetService("MarketplaceService")
--- local StarterGui          = game:GetService("StarterGui")
--- local Stats               = game:GetService("Stats")
--- local MenuColor           = Color3.fromRGB(255, 255, 255)
-
--- --// Libraries
--- local repo         = 'https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexUI/'
--- local Sense        = safeLoad('https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexESP/Venex.lua')
--- local Library      = safeLoad(repo .. 'Library.lua')
--- local ThemeManager = safeLoad(repo .. 'addons/ThemeManager.lua')
--- local SaveManager  = safeLoad(repo .. 'addons/SaveManager.lua')
-
--- if not (Library and ThemeManager and SaveManager and Sense) then
---     warn("[Venex] One or more libs failed to load. Some features may be unavailable.")
--- end
-
--- local function notify(msg, dur)
---     if Library and Library.Notify then
---         Library:Notify(msg, dur or 3)
---         print(msg)
---     end
--- end
