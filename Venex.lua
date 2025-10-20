@@ -98,6 +98,10 @@ LGVisuals:AddToggle('EspEnemyBox', {
     Text = 'Box 2D', Default = false,
     Callback = function(v) VenexEsp.teamSettings.enemy.box = v end
 })
+LGVisuals:AddLabel('Box Color'):AddColorPicker('EspEnemyBoxColor', {
+    Text = 'Box Color', Default = Color3.fromRGB(255,255,255),
+    Callback = function(v) Sense.teamSettings.enemy.boxColor = v end
+})
 local object = VenexEsp.AddInstance(workspace.Baseplate, {
     --enabled = false,
     text = "{name}\n{distance} Studs", -- Placeholders: {name}, {distance}, {position}
