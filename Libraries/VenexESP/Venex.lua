@@ -812,8 +812,27 @@ function EspInterface.Unload()
 end
 
 -- game specific functions (override these as needed)
+-- function EspInterface.getWeapon(player)
+-- 	return "Unknown"
+-- end
 function EspInterface.getWeapon(player)
-	return "Unknown"
+    local char = player and player.Character
+    if char then
+        for _, child in ipairs(char:GetChildren()) do
+            if child:IsA("Tool") then
+                return child.Name
+            end
+        end
+    end
+    local backpack = player and player:FindFirstChildOfClass("Backpack")
+    if backpack then
+        for _, tool in ipairs(backpack:GetChildren()) do
+            if tool:IsA("Tool") then
+                return "[Backpack] " .. tool.Name
+            end
+        end
+    end
+    return "Unknown"
 end
 
 function EspInterface.isFriendly(player)
