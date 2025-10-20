@@ -38,7 +38,7 @@ local repo         = 'https://raw.githubusercontent.com/TheWooffles/Venex/main/L
 local Library      = Load(repo .. 'VenexUI/Library.lua')
 local ThemeManager = Load(repo .. 'VenexUI/addons/ThemeManager.lua')
 local SaveManager  = Load(repo .. 'VenexUI/addons/SaveManager.lua')
-local VenexEsp     = load(repo .. 'VenexESP/Venex.lua')
+local VenexEsp     = Load(repo .. 'VenexESP/Venex.lua')
 
 if not (Library and ThemeManager and SaveManager and VenexEsp) then
     Library:Notify("[Venex] One or more libs failed to load. Some features may be unavailable.")
@@ -64,6 +64,15 @@ local LGVisuals = Tabs.Visuals:AddLeftGroupbox('Enemy Esp')
 local LGMisc    = Tabs.Misc:AddLeftGroupbox('Venex')
 local RGMisc    = Tabs.Misc:AddRightGroupbox('Tools')
 local MenuGroup = Tabs.Settings:AddLeftGroupbox('Menu')
+
+LGVisuals:AddToggle('EspEnemy', {
+    Text = 'Enable', Default = false, Tooltip = 'Enable Enemy Esp',
+    Callback = function(v) VenexEsp.teamSettings.enemy.enabled = v end
+})
+LGVisuals:AddToggle('EspEnemyBox', {
+    Text = 'Box 2D', Default = false,
+    Callback = function(v) VenexEsp.teamSettings.enemy.box = v end
+})
 
 RGMisc:AddButton('Rejoin Server', function()
     Library:Notify('Rejoining current server...', 3)
@@ -103,8 +112,10 @@ end);
 
 Library:OnUnload(function()
 	Library:Notify('[Venex] Warning : Unloading...', 10)
-	wait(1)
+    Library:Toggle()
     WatermarkConnection:Disconnect()
+    VenexEsp:Unload()
+	wait(1)
     print('[Venex] Info : Unloaded!')
     Library.Unloaded = true
 	_G.VenexExecuted = false
@@ -114,6 +125,7 @@ MenuGroup:AddButton('Unload', function() Library:Unload() end)
 MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'RightShift', NoUI = true, Text = 'Menu keybind' })
 Library.ToggleKeybind = Options.MenuKeybind
 
+VenexEsp:Load()
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
