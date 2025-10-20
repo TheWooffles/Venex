@@ -80,6 +80,28 @@ RGMisc:AddButton('Rejoin Server', function()
     TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
 end)
 
+RGMisc:AddButton('Server Hop', function()
+        Library:Notify('Searching for another server...', 5)
+        local ok, res = pcall(function()
+            local s = safeHttpGet(string.format("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Desc&limit=100", game.PlaceId))
+            return s and HttpService:JSONDecode(s) or nil
+        end)
+        if ok and res and res.data then
+            for _, server in ipairs(res.data) do
+                if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                    Library:Notify('Joining a new server...', 3)
+                    TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
+                    return
+                end
+            end
+            Library:Notify('No other servers found.', 3)
+        else
+            Library:Notify('Failed to fetch server list.', 5)
+        end
+    end)
+
+RGMisc:AddDivider()
+
 RGMisc:AddButton('Execute Dex', function()
     if DexLoaded then return notify('Dex already executed!', 3) end
     DexLoaded = true
