@@ -126,10 +126,10 @@ LGVisuals:AddToggle('EspHealthBar', {
 
 RGMisc:AddButton('Rejoin Server', function()
     Library:Notify('Rejoining current server...', 3)
+    wait(0.5)
     if ExecuteVenexOnRejoin then
         queueTeleport(loadstring(game:HttpGet('https://raw.githubusercontent.com/TheWooffles/Venex/main/Venex.lua'))())
     end
-    wait(0.5)
     TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
 end)
 RGMisc:AddToggle('ExecuteVenexRejoin', {
