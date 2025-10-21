@@ -31,12 +31,14 @@ local TeleportService     = game:GetService("TeleportService")
 local TweenService        = game:GetService("TweenService")
 
 --// Variables
-local LocalPlayer    = Players.LocalPlayer
-local DexLoaded      = false
-local CoreGui        = (gethui and gethui()) or game:GetService("CoreGui")
-local protectgui     = protectgui or (syn and syn.protect_gui) or function() end
-local MenuColor      = Color3.fromRGB(255, 255, 255)
-local VenexWatermark = true
+local LocalPlayer          = Players.LocalPlayer
+local DexLoaded            = false
+local CoreGui              = (gethui and gethui()) or game:GetService("CoreGui")
+local queueTeleport        = queue_on_teleport
+local protectgui           = protectgui or (syn and syn.protect_gui) or function() end
+local MenuColor            = Color3.fromRGB(255, 255, 255)
+local VenexWatermark       = true
+local ExecuteVenexOnRejoin = true
 
 local ScreenGui = Instance.new('ScreenGui')
 protectgui(ScreenGui)
@@ -78,7 +80,6 @@ local LGMisc    = Tabs.Misc:AddLeftGroupbox('Venex')
 local RGMisc    = Tabs.Misc:AddRightGroupbox('Tools')
 local MenuGroup = Tabs.Settings:AddLeftGroupbox('Menu')
 
-
 LGMisc:AddToggle('Watermark', {
     Text = 'Show Watermark', Default = true, Tooltip = 'Enable Watermark',
     Callback = function(v)
@@ -100,7 +101,7 @@ LGVisuals:AddToggle('EspEnemyBox', {
 })
 LGVisuals:AddLabel('Box Color'):AddColorPicker('EspEnemyBoxColor', {
     Text = 'Box Color', Default = Color3.fromRGB(255,255,255),
-    Callback = function(v) Sense.teamSettings.enemy.boxColor = v end
+    Callback = function(v) VenexEsp.teamSettings.enemy.boxColor[1] = v end
 })
 local object = VenexEsp.AddInstance(workspace.Baseplate, {
     --enabled = false,
@@ -125,9 +126,16 @@ LGVisuals:AddToggle('EspHealthBar', {
 
 RGMisc:AddButton('Rejoin Server', function()
     Library:Notify('Rejoining current server...', 3)
+    if ExecuteVenexOnRejoin then
+        queueTeleport(loadstring(game:HttpGet('https://raw.githubusercontent.com/TheWooffles/Venex/main/Venex.lua'))())
+    end
     wait(0.5)
     TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
 end)
+RGMisc:AddToggle('ExecuteVenexRejoin', {
+    Text = 'Execute Venex After Rejoin', Default = ExecuteVenexOnRejoin, Tooltip = 'Executes Venex After Rejoinning',
+    Callback = function(v) ExecuteVenexOnRejoin = v end
+})
 
 RGMisc:AddButton('Server Hop', function()
     Library:Notify('Searching for another server...', 5)
