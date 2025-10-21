@@ -37,7 +37,6 @@ local CoreGui              = (gethui and gethui()) or game:GetService("CoreGui")
 local protectgui           = protectgui or (syn and syn.protect_gui) or function() end
 local MenuColor            = Color3.fromRGB(255, 255, 255)
 local VenexWatermark       = true
-local ExecuteVenexOnRejoin = true
 
 local ScreenGui = Instance.new('ScreenGui')
 protectgui(ScreenGui)
@@ -98,43 +97,38 @@ LGVisuals:AddToggle('EspEnemyBox', {
     Text = 'Box 2D', Default = false,
     Callback = function(v) VenexEsp.teamSettings.enemy.box = v end
 })
+LGVisuals:AddToggle('EspEnemyBox3D', {
+    Text = 'Box 3D', Default = false,
+    Callback = function(v) VenexEsp.teamSettings.enemy.box3d = v end
+})
+LGVisuals:AddToggle('EspEnemyName', {
+    Text = 'Name', Default = false,
+    Callback = function(v) VenexEsp.teamSettings.enemy.name = v end
+})
+LGVisuals:AddToggle('EspEnemyHealthBar', {
+    Text = 'Health Bar', Default = false,
+    Callback = function(v) VenexEsp.teamSettings.enemy.healthBar = v end
+})
+LGVisuals:AddToggle('EspEnemyTool', {
+    Text = 'Tool/Weapon', Default = false,
+    Callback = function(v) VenexEsp.teamSettings.enemy.weapon = v end
+})
+
+LGVisuals:AddDivider()
 LGVisuals:AddLabel('Box Color'):AddColorPicker('EspEnemyBoxColor', {
     Text = 'Box Color', Default = Color3.fromRGB(255,255,255),
     Callback = function(v) VenexEsp.teamSettings.enemy.boxColor[1] = v end
 })
-local object = VenexEsp.AddInstance(workspace.Baseplate, {
-    --enabled = false,
-    text = "{name}\n{distance} Studs", -- Placeholders: {name}, {distance}, {position}
-    textColor = { Color3.new(1,1,1), 1 },
-    textOutline = true,
-    textOutlineColor = Color3.new(0,0,0),
-    textSize = 13,
-    textFont = 2,
-    limitDistance = false,
-    maxDistance = 150
-})
-object.options.enabled = true
-LGVisuals:AddToggle('EspName', {
-    Text = 'Name', Default = false,
-    Callback = function(v) VenexEsp.teamSettings.enemy.name = v end
-})
-LGVisuals:AddToggle('EspHealthBar', {
-    Text = 'Health Bar', Default = false,
-    Callback = function(v) VenexEsp.teamSettings.enemy.healthBar = v end
+LGVisuals:AddLabel('Box 3D Color'):AddColorPicker('EspEnemyBox3DColor', {
+    Text = 'Box 3D Color', Default = Color3.fromRGB(255,0,0),
+    Callback = function(v) VenexEsp.teamSettings.enemy.box3dColor[1] = v end
 })
 
 RGMisc:AddButton('Rejoin Server', function()
     Library:Notify('Rejoining current server...', 3)
     wait(0.5)
-    if ExecuteVenexOnRejoin then
-        queue_on_teleport(loadstring(game:HttpGet('https://raw.githubusercontent.com/TheWooffles/Venex/main/Venex.lua'))())
-    end
     TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
 end)
-RGMisc:AddToggle('ExecuteVenexRejoin', {
-    Text = 'Execute Venex After Rejoin', Default = ExecuteVenexOnRejoin, Tooltip = 'Executes Venex After Rejoinning',
-    Callback = function(v) ExecuteVenexOnRejoin = v end
-})
 
 RGMisc:AddButton('Server Hop', function()
     Library:Notify('Searching for another server...', 5)
@@ -165,6 +159,18 @@ RGMisc:AddButton('Execute Dex', function()
     Load('https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexDEX/DexMobile.lua')
     Library:Notify('[Venex] Info : Executed!', 3)
 end)
+
+local BaseplateEsp = VenexEsp.AddInstance(workspace.Baseplate, {
+    enabled = true,
+    text = "{name}\n{distance} Studs", -- Placeholders: {name}, {distance}, {position}
+    textColor = { Color3.new(1,1,1), 1 },
+    textOutline = true,
+    textOutlineColor = Color3.new(0,0,0),
+    textSize = 13,
+    textFont = 2,
+    limitDistance = false,
+    maxDistance = 150
+})
 
 local FrameTimer = tick()
 local FrameCounter = 0;
