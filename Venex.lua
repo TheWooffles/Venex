@@ -43,7 +43,7 @@ local Camera               = Workspace.CurrentCamera
 local ScreenGui = Instance.new('ScreenGui')
 protectgui(ScreenGui)
 ScreenGui.Name = "Venex"
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 ScreenGui.DisplayOrder = 1

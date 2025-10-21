@@ -14,9 +14,9 @@ local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 local ScreenGui = Instance.new('ScreenGui');
 ProtectGui(ScreenGui);
 
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling;
 ScreenGui.Parent = CoreGui;
-ScreenGui.DisplayOrder = 2
+ScreenGui.DisplayOrder = 999
 
 local Toggles = {};
 local Options = {};
