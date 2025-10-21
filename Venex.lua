@@ -34,7 +34,6 @@ local TweenService        = game:GetService("TweenService")
 local LocalPlayer          = Players.LocalPlayer
 local DexLoaded            = false
 local CoreGui              = (gethui and gethui()) or game:GetService("CoreGui")
-local queueTeleport        = queue_on_teleport
 local protectgui           = protectgui or (syn and syn.protect_gui) or function() end
 local MenuColor            = Color3.fromRGB(255, 255, 255)
 local VenexWatermark       = true
@@ -128,7 +127,7 @@ RGMisc:AddButton('Rejoin Server', function()
     Library:Notify('Rejoining current server...', 3)
     wait(0.5)
     if ExecuteVenexOnRejoin then
-        queueTeleport(loadstring(game:HttpGet('https://raw.githubusercontent.com/TheWooffles/Venex/main/Venex.lua'))())
+        queue_on_teleport(loadstring(game:HttpGet('https://raw.githubusercontent.com/TheWooffles/Venex/main/Venex.lua'))())
     end
     TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
 end)
