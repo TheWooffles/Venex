@@ -29,6 +29,7 @@ end
 local Players             = game:GetService("Players")
 local TeleportService     = game:GetService("TeleportService")
 local TweenService        = game:GetService("TweenService")
+local UserInputService    = game:GetService("UserInputService")
 
 --// Variables
 local LocalPlayer          = Players.LocalPlayer
@@ -37,6 +38,7 @@ local CoreGui              = (gethui and gethui()) or game:GetService("CoreGui")
 local protectgui           = protectgui or (syn and syn.protect_gui) or function() end
 local MenuColor            = Color3.fromRGB(255, 255, 255)
 local VenexWatermark       = true
+local Camera               = Workspace.CurrentCamera
 
 local ScreenGui = Instance.new('ScreenGui')
 protectgui(ScreenGui)
@@ -44,6 +46,26 @@ ScreenGui.Name = "Venex"
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
+ScreenGui.DisplayOrder = 900
+
+local fov = Drawing.new("Circle")
+fov.Visible = true
+fov.Thickness = 1
+fov.Color = Color3.fromRGB(255,255,255)
+fov.Filled = false
+fov.Radius = 100
+fov.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
+fov.ZIndex = 1
+fov.Parent = ScreenGui
+local fov1 = Drawing.new("Circle")
+fov1.Visible = true
+fov1.Thickness = fov.Thickness + 2
+fov1.Color = Color3.fromRGB(0,0,0)
+fov1.Filled = false
+fov1.Radius = fov.Radius - 1
+fov1.Position =  fov.Position
+fov1.ZIndex = 0
+fov1.Parent = ScreenGui
 
 --//Libraries
 local repo         = 'https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/'
@@ -119,10 +141,10 @@ LGVisuals:AddLabel('Box Color'):AddColorPicker('EspEnemyBoxColor', {
     Text = 'Box Color', Default = Color3.fromRGB(255,255,255),
     Callback = function(v) VenexEsp.teamSettings.enemy.boxColor[1] = v end
 })
-LGVisuals:AddLabel('Box 3D Color'):AddColorPicker('EspEnemyBox3DColor', {
-    Text = 'Box 3D Color', Default = Color3.fromRGB(255,0,0),
-    Callback = function(v) VenexEsp.teamSettings.enemy.box3dColor[1] = v end
-})
+-- LGVisuals:AddLabel('Box 3D Color'):AddColorPicker('EspEnemyBox3DColor', {
+--     Text = 'Box 3D Color', Default = Color3.fromRGB(255,0,0),
+--     Callback = function(v) VenexEsp.teamSettings.enemy.box3dColor[1] = v end
+-- })
 
 RGMisc:AddButton('Rejoin Server', function()
     Library:Notify('Rejoining current server...', 3)
@@ -172,6 +194,10 @@ local BaseplateEsp = VenexEsp.AddInstance(workspace.Baseplate, {
     maxDistance = 150
 })
 
+local FovPositionConnection = game:GetService('RunService').RenderStepped:Connect(function()
+    fov.Position = UserInputService:GetMouseLocation()
+    fov1.Position = fov.Position
+end);
 local FrameTimer = tick()
 local FrameCounter = 0;
 local FPS = 60;
@@ -194,9 +220,12 @@ end);
 Library:OnUnload(function()
 	Library:Notify('[Venex] Warning : Unloading...', 10)
     Library:Toggle()
+    FovPositionConnection:Disconnect()
     WatermarkConnection:Disconnect()
     VenexEsp:Unload()
     ScreenGui:Destroy()
+    fov:Destroy()
+    fov1:Destroy()
 	wait(1)
     print('[Venex] Info : Unloaded!')
     Library.Unloaded = true
