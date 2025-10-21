@@ -16,7 +16,7 @@ ProtectGui(ScreenGui);
 
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
 ScreenGui.Parent = CoreGui;
-ScreenGui.DisplayOrder = 999
+ScreenGui.DisplayOrder = 2
 
 local Toggles = {};
 local Options = {};
