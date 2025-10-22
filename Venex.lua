@@ -486,6 +486,8 @@ local function updateFovDrawing()
     FovCircle.Position = FovCirclePosition() + Vector2.new(Aimbot.Offset.X, Aimbot.Offset.Y)
     FovCircle.Radius = Aimbot.Radius
     FovCircle.Visible = Aimbot.Enabled
+    FovCircleOutline.Visible = Aimbot.Enabled
+    FovCircleOutline.Position = FovCircle.Position
 end
 
 local function updateTargetIndicator(target)
@@ -531,7 +533,8 @@ local AimbotConnection = RunService.RenderStepped:Connect(function()
         updateFovDrawing()
     end
     if not Aimbot.Enabled then
-        FovCircle.visible = false
+        FovCircle.Visible = false
+        updateFovDrawing()
     end
     if closest ~= aimbotTargetCache then
         aimbotTargetCache = closest
