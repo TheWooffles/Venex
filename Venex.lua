@@ -488,6 +488,7 @@ local function updateFovDrawing()
     FovCircle.Visible = Aimbot.Enabled
     FovCircleOutline.Visible = Aimbot.Enabled
     FovCircleOutline.Position = FovCircle.Position
+    FovCircleOutline.Radius = FovCircle.Radius - 1
 end
 
 local function updateTargetIndicator(target)
