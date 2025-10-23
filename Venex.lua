@@ -123,10 +123,10 @@ FovCircleOutline.Parent    = ScreenGui
 
 local TargetIndicator        = Drawing.new("Circle")
 TargetIndicator.Visible      = false
-TargetIndicator.Radius       = 2
+TargetIndicator.Radius       = 15
 TargetIndicator.Thickness    = 1
 TargetIndicator.Color        = Color3.fromRGB(255, 255, 255)
-TargetIndicator.Filled       = true
+TargetIndicator.Filled       = false
 TargetIndicator.Transparency = 0.2
 TargetIndicator.ZIndex       = 0
 TargetIndicator.Parent       = ScreenGui
@@ -504,7 +504,7 @@ local function updateTargetIndicator(target)
     local sp, onScreen = Camera:WorldToViewportPoint(part.Position)
     if onScreen then
         TargetIndicator.Visible = true
-        TargetIndicator.Position = Vector2.new(sp.X + lookAt.X, sp.Y + lookAt.Y)
+        TargetIndicator.Position = Vector2.new(sp.X, sp.Y)
         -- if Cursor and Cursor.sticky then
         --     Cursor.mode = 'custom'
         --     Cursor.position = Vector2.new(sp.X, sp.Y)
