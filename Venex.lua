@@ -160,6 +160,14 @@ Player:CreateSlider({
 		},
 	}
 })
+Player:Keybind({
+	Title = 'CFrame Speed KeyBind', -- Set Title
+	Key = Enum.KeyCode.V; -- Default Bind
+	CallBack = function(v)
+		Config.CFrameSpeed.Enabled = v
+	end,
+})
+
 
 Misc:Section('Server')
 Misc:Button({
