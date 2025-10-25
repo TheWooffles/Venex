@@ -136,7 +136,7 @@ Visuals:ColorPicker({
 })
 
 Player:Section('Movement')
-Player:Toggle({
+local CFrameSpeedToggle = Player:Toggle({
 	Title = 'CFrame Speed Enabled',
 	Value = false,
 	Config = true,
@@ -166,6 +166,7 @@ Player:Keybind({
 	Key = Enum.KeyCode.V;
 	CallBack = function()
 		Config.CFrameSpeed.Enabled = not Config.CFrameSpeed.Enabled
+        CFrameSpeedToggle:Set(Config.CFrameSpeed.Enabled)
 	end,
 })
 
