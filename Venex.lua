@@ -37,6 +37,13 @@ local LocalPlayer          = Players.LocalPlayer
 local syde         = Load("https://raw.githubusercontent.com/essencejs/syde/refs/heads/main/source",true)
 local VenexEsp     = Load('https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexESP/Venex.lua')
 
+local Config = {
+    CFrameSpeed = {
+        Enabled = false,
+        Speed = 1,
+    },
+}
+
 syde:Load({
 	Logo = '7488932274',
 	Name = 'Vantage Internal',
@@ -77,8 +84,10 @@ local Window = syde:Init({
 
 local Combat  = Window:InitTab({ Title = 'Combat' })
 local Visuals = Window:InitTab({ Title = 'Visuals' })
+local Player  = Window:InitTab({ Title = 'Player' })
 local Misc    = Window:InitTab({ Title = 'Misc' })
 
+Visuals:Section('Enemy Esp')
 Visuals:Toggle({
 	Title = 'Enable Enemy Esp',
 	Value = false,
@@ -125,6 +134,34 @@ Visuals:ColorPicker({
 	Flag = 'EspEnemyBoxColor' -- Use if you are running config saving, make sure each element has a diffrent Flag name.
 })
 
+Player:Section('Movement')
+Player:Toggle({
+	Title = 'CFrame Speed Enabled',
+	Value = false,
+	Config = true,
+	CallBack = function(v)
+		Config.CFrameSpeed.Enabled = v
+	end,
+	Flag = 'CFrameSpeedEnabled'
+})
+Player:CreateSlider({
+	Title = 'CFrame Speed', -- Set Title
+	Description = '', -- Description (Optional)
+	Sliders = { -- Initialize the sliders
+		{
+			Title = 'Speed', -- Set Title
+			Range = {0, 10}, -- Set Range (Min, Max)
+			Increment = 1, -- Set Increment
+			StarterValue = 1, -- Set Starter Value
+			CallBack = function(v)
+				Config.CFrameSpeed.Speed = v
+			end,
+			Flag = 'CFrameSpeed' -- Use if you are running config saving, make sure each element has a diffrent Flag name.
+		},
+	}
+})
+
+Misc:Section('Server')
 Misc:Button({
 	Title = 'Rejoin', -- Set Title
 	Description = 'Rejoins Current Server', -- Description (Optional)
@@ -140,6 +177,21 @@ Misc:Button({
         TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
 	end,
 })
+
+--// Main Loop
+local MainLoop = RunService.RenderStepped:Connect(function(dt)
+    if Config.CFrameSpeed.Enabled then
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hum and hrp then
+            local dir = hum.MoveDirection
+            if dir.Magnitude > 0 then
+                hrp.CFrame = hrp.CFrame + (dir * Config.CFrameSpeed.Speed)
+            end
+        end
+    end
+end);
 
 VenexEsp:Load()
 _G.VantageExecuted = true
