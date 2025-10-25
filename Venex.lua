@@ -140,3 +140,11 @@ Misc:Button({
         TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
 	end,
 })
+
+VenexEsp:Load()
+_G.VantageExecuted = true
+syde:Notify({
+    Title = 'Vantage Internal',
+    Content = 'Vantage Internal Executed!',
+    Duration = 4
+})
