@@ -27,7 +27,7 @@ FovCircle.Thickness = 1
 
 --// Logic & Main Loop
 local function GetClosestPlayer()
-    local MaximumDistance _G.Radius
+    local MaximumDistance = _G.Radius
     local Target = nil
 
     for _, v in next, Players:GetPlayers() do
@@ -85,7 +85,7 @@ RunService.RenderStepped:Connect(function()
     FovCircle.Color    = _G.FovColor
 
     if Holding == true and _G.AimbotEnabled == true then 
-        local cf = CFrame.lookAt(Camera.CFrame.Position, GetClosestPlayer().Character[_G.AimPart].Position)
+        local cf = CFrame.new(Camera.CFrame.Position, GetClosestPlayer().Character[_G.AimPart].Position)
         Camera.CFrame:Lerp(cf, math.clamp(_G.Smoothness))
     end
 end)
