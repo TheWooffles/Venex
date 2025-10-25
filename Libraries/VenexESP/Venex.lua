@@ -466,23 +466,23 @@ function EspObject:Render()
 	end
 
 	-- Off-screen arrow
-	hidden.arrow.Visible = enabled and (not onScreen) and options.offScreenArrow
-	hidden.arrowOutline.Visible = hidden.arrow.Visible and options.offScreenArrowOutline
-	if hidden.arrow.Visible and self.direction then
-		local arrow = hidden.arrow
-		arrow.PointA = min2(max2(viewportSize * 0.5 + self.direction * options.offScreenArrowRadius, Vector2.new(25, 25)), viewportSize - Vector2.new(25, 25))
-		arrow.PointB = arrow.PointA - rotateVector(self.direction, 0.45) * options.offScreenArrowSize
-		arrow.PointC = arrow.PointA - rotateVector(self.direction, -0.45) * options.offScreenArrowSize
-		arrow.Color = parseColor(self, options.offScreenArrowColor[1])
-		arrow.Transparency = options.offScreenArrowColor[2]
+	-- hidden.arrow.Visible = enabled and (not onScreen) and options.offScreenArrow
+	-- hidden.arrowOutline.Visible = hidden.arrow.Visible and options.offScreenArrowOutline
+	-- if hidden.arrow.Visible and self.direction then
+	-- 	local arrow = hidden.arrow
+	-- 	arrow.PointA = min2(max2(viewportSize * 0.5 + self.direction * options.offScreenArrowRadius, Vector2.new(25, 25)), viewportSize - Vector2.new(25, 25))
+	-- 	arrow.PointB = arrow.PointA - rotateVector(self.direction, 0.45) * options.offScreenArrowSize
+	-- 	arrow.PointC = arrow.PointA - rotateVector(self.direction, -0.45) * options.offScreenArrowSize
+	-- 	arrow.Color = parseColor(self, options.offScreenArrowColor[1])
+	-- 	arrow.Transparency = options.offScreenArrowColor[2]
 
-		local arrowOutline = hidden.arrowOutline
-		arrowOutline.PointA = arrow.PointA
-		arrowOutline.PointB = arrow.PointB
-		arrowOutline.PointC = arrow.PointC
-		arrowOutline.Color = parseColor(self, options.offScreenArrowOutlineColor[1], true)
-		arrowOutline.Transparency = options.offScreenArrowOutlineColor[2]
-	end
+	-- 	local arrowOutline = hidden.arrowOutline
+	-- 	arrowOutline.PointA = arrow.PointA
+	-- 	arrowOutline.PointB = arrow.PointB
+	-- 	arrowOutline.PointC = arrow.PointC
+	-- 	arrowOutline.Color = parseColor(self, options.offScreenArrowOutlineColor[1], true)
+	-- 	arrowOutline.Transparency = options.offScreenArrowOutlineColor[2]
+	-- end
 
 	-- 3D box faces
 	local box3dEnabled = enabled and onScreen and options.box3d
