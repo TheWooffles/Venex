@@ -29,6 +29,7 @@ local TweenService        = game:GetService("TweenService")
 local UserInputService    = game:GetService("UserInputService")
 local RunService          = game:GetService("RunService")
 local HttpService         = game:GetService("HttpService")
+local Lighting            = game:GetService("Lighting")
 local LocalPlayer         = Players.LocalPlayer
 local Mouse               = LocalPlayer:GetMouse()
 local Camera              = workspace.CurrentCamera
@@ -41,6 +42,20 @@ local Config = {
         Enabled = false,
         Speed = 1,
     },
+    TriggerBot = {
+        Enabled = false,
+        Delay = 0,
+        TeamCheck = true,
+        WallCheck = true,
+        HitChance = 100,
+        AutoShoot = true,
+    },
+    World = {
+        Fullbright = false,
+        NoShadows = false,
+        NoTextures = false,
+        OriginalLighting = {},
+    }
 }
 
 syde:Load({
@@ -84,6 +99,7 @@ local Window = syde:Init({
 local Combat  = Window:InitTab({ Title = 'Combat' })
 local Visuals = Window:InitTab({ Title = 'Visuals' })
 local Player  = Window:InitTab({ Title = 'Player' })
+local World   = Window:InitTab({ Title = 'World' })
 local Misc    = Window:InitTab({ Title = 'Misc' })
 
 _G.AimLock = _G.AimLock or {
@@ -100,6 +116,160 @@ _G.AimLock = _G.AimLock or {
 local isLocking = false
 local targetPlayer = nil
 local connections = {}
+
+-- Store original lighting settings
+local function SaveOriginalLighting()
+    Config.World.OriginalLighting = {
+        Brightness = Lighting.Brightness,
+        Ambient = Lighting.Ambient,
+        OutdoorAmbient = Lighting.OutdoorAmbient,
+        ClockTime = Lighting.ClockTime,
+        FogEnd = Lighting.FogEnd,
+        GlobalShadows = Lighting.GlobalShadows,
+    }
+end
+
+SaveOriginalLighting()
+
+-- Fullbright Function
+local function ApplyFullbright(enabled)
+    if enabled then
+        Lighting.Brightness = 2
+        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+        Lighting.ClockTime = 12
+        Lighting.FogEnd = 100000
+    else
+        Lighting.Brightness = Config.World.OriginalLighting.Brightness or 1
+        Lighting.Ambient = Config.World.OriginalLighting.Ambient or Color3.fromRGB(0, 0, 0)
+        Lighting.OutdoorAmbient = Config.World.OriginalLighting.OutdoorAmbient or Color3.fromRGB(0, 0, 0)
+        Lighting.ClockTime = Config.World.OriginalLighting.ClockTime or 14
+        Lighting.FogEnd = Config.World.OriginalLighting.FogEnd or 100000
+    end
+end
+
+-- No Shadows Function
+local function ApplyNoShadows(enabled)
+    Lighting.GlobalShadows = not enabled
+end
+
+-- No Textures Function
+local textureConnections = {}
+local function ApplyNoTextures(enabled)
+    -- Disconnect existing connections
+    for _, conn in pairs(textureConnections) do
+        conn:Disconnect()
+    end
+    textureConnections = {}
+    
+    local function ProcessPart(part)
+        if enabled then
+            if part:IsA("MeshPart") then
+                part.TextureID = ""
+            elseif part:IsA("Part") or part:IsA("UnionOperation") then
+                for _, child in pairs(part:GetChildren()) do
+                    if child:IsA("Decal") or child:IsA("Texture") then
+                        child.Transparency = 1
+                    end
+                end
+            end
+        end
+    end
+    
+    if enabled then
+        -- Process existing parts
+        for _, part in pairs(workspace:GetDescendants()) do
+            ProcessPart(part)
+        end
+        
+        -- Monitor new parts
+        table.insert(textureConnections, workspace.DescendantAdded:Connect(function(part)
+            ProcessPart(part)
+        end))
+    end
+end
+
+-- Trigger Bot Functions
+local triggerBotActive = false
+local lastShootTime = 0
+
+local function isPlayerInCrosshair()
+    if not LocalPlayer.Character then return false, nil end
+    
+    local ray = Camera:ScreenPointToRay(Mouse.X, Mouse.Y)
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    
+    local result = workspace:Raycast(ray.Origin, ray.Direction * 1000, raycastParams)
+    
+    if result and result.Instance then
+        local hitPart = result.Instance
+        local targetChar = hitPart:FindFirstAncestorOfClass("Model")
+        
+        if targetChar then
+            local targetPlayer = Players:GetPlayerFromCharacter(targetChar)
+            
+            if targetPlayer and targetPlayer ~= LocalPlayer then
+                -- Team check
+                if Config.TriggerBot.TeamCheck and targetPlayer.Team == LocalPlayer.Team then
+                    return false, nil
+                end
+                
+                -- Wall check
+                if Config.TriggerBot.WallCheck then
+                    local directRayParams = RaycastParams.new()
+                    directRayParams.FilterDescendantsInstances = {LocalPlayer.Character, targetChar}
+                    directRayParams.FilterType = Enum.RaycastFilterType.Exclude
+                    
+                    local origin = Camera.CFrame.Position
+                    local direction = (hitPart.Position - origin).Unit * (hitPart.Position - origin).Magnitude
+                    local directResult = workspace:Raycast(origin, direction, directRayParams)
+                    
+                    if directResult then
+                        return false, nil
+                    end
+                end
+                
+                -- Hit chance check
+                if math.random(1, 100) <= Config.TriggerBot.HitChance then
+                    return true, targetPlayer
+                end
+            end
+        end
+    end
+    
+    return false, nil
+end
+
+local function TriggerShoot()
+    if not Config.TriggerBot.AutoShoot then return end
+    
+    local currentTime = tick()
+    if currentTime - lastShootTime < Config.TriggerBot.Delay then
+        return
+    end
+    
+    lastShootTime = currentTime
+    
+    -- Try to find and trigger shooting mechanism
+    pcall(function()
+        -- Method 1: Mouse1Click (most common)
+        mouse1click()
+    end)
+    
+    -- Alternative methods for different games
+    pcall(function()
+        -- Method 2: Check for Tool activation
+        local char = LocalPlayer.Character
+        if char then
+            local tool = char:FindFirstChildOfClass("Tool")
+            if tool and tool:FindFirstChild("Activated") then
+                tool:Activate()
+            end
+        end
+    end)
+end
 
 Combat:Section('Aim Lock')
 Combat:Toggle({
@@ -161,6 +331,93 @@ Combat:Keybind({
 	Key = Enum.KeyCode.Q;
 	CallBack = function(key)
 		_G.AimLock.Keybind = key
+	end,
+})
+
+Combat:Section('Trigger Bot')
+local TriggerBotToggle = Combat:Toggle({
+	Title = 'Trigger Bot Enabled',
+	Value = false,
+	Config = true,
+	CallBack = function(v)
+		Config.TriggerBot.Enabled = v
+		triggerBotActive = v
+		if v then
+			syde:Notify({
+				Title = '🎯 Trigger Bot',
+				Content = 'Enabled - Aim at enemies to auto-shoot',
+				Duration = 2
+			})
+		else
+			syde:Notify({
+				Title = '🎯 Trigger Bot',
+				Content = 'Disabled',
+				Duration = 1.5
+			})
+		end
+	end,
+	Flag = 'TriggerBotEnabled'
+})
+Combat:Toggle({
+	Title = 'Team Check',
+	Value = true,
+	Config = true,
+	CallBack = function(v)
+		Config.TriggerBot.TeamCheck = v
+	end,
+	Flag = 'TriggerBotTeamCheck'
+})
+Combat:Toggle({
+	Title = 'Wall Check',
+	Value = true,
+	Config = true,
+	CallBack = function(v)
+		Config.TriggerBot.WallCheck = v
+	end,
+	Flag = 'TriggerBotWallCheck'
+})
+Combat:Toggle({
+	Title = 'Auto Shoot',
+	Value = true,
+	Config = true,
+	CallBack = function(v)
+		Config.TriggerBot.AutoShoot = v
+	end,
+	Flag = 'TriggerBotAutoShoot'
+})
+Combat:CreateSlider({
+	Title = 'Trigger Bot Options',
+	Description = '',
+	Sliders = {
+		{
+			Title = 'Shoot Delay (ms)',
+			Range = {0, 500},
+			Increment = 10,
+			StarterValue = 0,
+			CallBack = function(v)
+				Config.TriggerBot.Delay = v / 1000
+			end,
+			Flag = 'TriggerBotDelay'
+		},
+		{
+			Title = 'Hit Chance (%)',
+			Range = {1, 100},
+			Increment = 1,
+			StarterValue = 100,
+			CallBack = function(v)
+				Config.TriggerBot.HitChance = v
+			end,
+			Flag = 'TriggerBotHitChance'
+		},
+	}
+})
+Combat:Keybind({
+	Title = 'Trigger Bot Toggle',
+	Key = Enum.KeyCode.T;
+	CallBack = function()
+		Config.TriggerBot.Enabled = not Config.TriggerBot.Enabled
+		triggerBotActive = Config.TriggerBot.Enabled
+		TriggerBotToggle:Set(Config.TriggerBot.Enabled)
 	end,
 })
 
@@ -234,6 +491,72 @@ Player:Keybind({
 	CallBack = function()
 		Config.CFrameSpeed.Enabled = not Config.CFrameSpeed.Enabled
         CFrameSpeedToggle:Set(Config.CFrameSpeed.Enabled)
+	end,
+})
+
+World:Section('Visual Enhancements')
+World:Toggle({
+	Title = 'Fullbright',
+	Value = false,
+	Config = true,
+	CallBack = function(v)
+		Config.World.Fullbright = v
+		ApplyFullbright(v)
+		syde:Notify({
+			Title = '🌟 Fullbright',
+			Content = v and 'Enabled' or 'Disabled',
+			Duration = 1.5
+		})
+	end,
+	Flag = 'WorldFullbright'
+})
+World:Toggle({
+	Title = 'No Shadows',
+	Value = false,
+	Config = true,
+	CallBack = function(v)
+		Config.World.NoShadows = v
+		ApplyNoShadows(v)
+		syde:Notify({
+			Title = '☀️ No Shadows',
+			Content = v and 'Enabled' or 'Disabled',
+			Duration = 1.5
+		})
+	end,
+	Flag = 'WorldNoShadows'
+})
+World:Toggle({
+	Title = 'No Textures',
+	Value = false,
+	Config = true,
+	CallBack = function(v)
+		Config.World.NoTextures = v
+		ApplyNoTextures(v)
+		syde:Notify({
+			Title = '🎨 No Textures',
+			Content = v and 'Enabled - Performance Mode' or 'Disabled',
+			Duration = 1.5
+		})
+	end,
+	Flag = 'WorldNoTextures'
+})
+World:Button({
+	Title = 'Reset Lighting',
+	Description = 'Restore Original Lighting Settings',
+	Type = 'Default',
+	HoldTime = 1,
+	CallBack = function()
+		Config.World.Fullbright = false
+		Config.World.NoShadows = false
+		Config.World.NoTextures = false
+		ApplyFullbright(false)
+		ApplyNoShadows(false)
+		ApplyNoTextures(false)
+		syde:Notify({
+			Title = '🔄 Lighting Reset',
+			Content = 'All world settings restored',
+			Duration = 2
+		})
 	end,
 })
 
@@ -425,16 +748,38 @@ connections.RenderStepped = RunService.RenderStepped:Connect(function()
     end
 end)
 
-_G.UnloadAimLock = function()
+-- Trigger Bot Main Loop
+connections.TriggerBot = RunService.RenderStepped:Connect(function()
+    if triggerBotActive and Config.TriggerBot.Enabled then
+        local hasTarget, target = isPlayerInCrosshair()
+        if hasTarget then
+            TriggerShoot()
+        end
+    end
+end)
+
+_G.UnloadVantage = function()
     for _, connection in pairs(connections) do
         connection:Disconnect()
     end
+    for _, connection in pairs(textureConnections) do
+        connection:Disconnect()
+    end
     connections = {}
+    textureConnections = {}
     isLocking = false
     targetPlayer = nil
+    triggerBotActive = false
     _G.AimLock.Enabled = false
     _G.AimLock.TargetPlayer = nil
-    print("Aim lock unloaded")
+    Config.TriggerBot.Enabled = false
+    
+    -- Reset world settings
+    ApplyFullbright(false)
+    ApplyNoShadows(false)
+    ApplyNoTextures(false)
+    
+    print("Vantage Internal unloaded")
 end
 
 local MainLoop = RunService.RenderStepped:Connect(function(dt)
@@ -449,7 +794,7 @@ local MainLoop = RunService.RenderStepped:Connect(function(dt)
             end
         end
     end
-end);
+end)
 
 VenexEsp:Load()
 _G.VantageExecuted = true
