@@ -163,7 +163,7 @@ Player:CreateSlider({
 })
 Player:Keybind({
 	Title = 'CFrame Speed KeyBind',
-	Key = Enum.KeyCode.V;
+	Key = Enum.KeyCode.B;
 	CallBack = function()
 		Config.CFrameSpeed.Enabled = not Config.CFrameSpeed.Enabled
         CFrameSpeedToggle:Set(Config.CFrameSpeed.Enabled)
