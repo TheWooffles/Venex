@@ -23,7 +23,6 @@ local function Load(url)
     return nil
 end
 
---// Services & Variables
 local Players             = game:GetService("Players")
 local TeleportService     = game:GetService("TeleportService")
 local TweenService        = game:GetService("TweenService")
@@ -47,16 +46,16 @@ local Config = {
 syde:Load({
 	Logo = '7488932274',
 	Name = 'Vantage Internal',
-	Status = 'Stable', -- {Stable, Unstable, Detected, Patched}
-	Accent = Color3.fromRGB(255, 255, 255), -- Window Accent Theme
-	HitBox = Color3.fromRGB(255, 0, 0), -- Window HitBox Theme (ex. Toggle Color)
-	AutoLoad = false, -- Does Not Work !
-	Socials = {    -- Allows 1 Large and 2 Small Blocks
+	Status = 'Stable',
+	Accent = Color3.fromRGB(255, 255, 255),
+	HitBox = Color3.fromRGB(255, 0, 0),
+	AutoLoad = false,
+	Socials = {
 		{
 			Name = 'Syde';
 			Style = 'Discord';
 			Size = "Large";
-			CopyToClip = false -- Copy To Clip (coming very soon)
+			CopyToClip = false
 		},
 		{
 			Name = 'GitHub';
@@ -65,21 +64,21 @@ syde:Load({
 			CopyToClip = false
 		}
 	},
-	ConfigurationSaving = { -- Allows Config Saving
+	ConfigurationSaving = {
 		Enabled = true,
 		FolderName = 'Vantage',
 		FileName = "Config"
 	},
 	AutoJoinDiscord = { 
-		Enabled = false, -- Prompt the user to join your Discord server if their executor supports it
-		Invite = "CZRZBwPz", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ ABCD would be ABCD
-		RememberJoins = false -- Set this to false to make them join the discord every time they load it up
+		Enabled = false,
+		Invite = "CZRZBwPz",
+		RememberJoins = false
 	},
 })
 
 local Window = syde:Init({
-	Title = 'Vantage Internal'; -- Set Title
-	SubText = 'Made With 💓 By @Cncspt' -- Set Subtitle
+	Title = 'Vantage Internal';
+	SubText = 'Made With 💓 By @Cncspt'
 })
 
 local Combat  = Window:InitTab({ Title = 'Combat' })
@@ -87,10 +86,25 @@ local Visuals = Window:InitTab({ Title = 'Visuals' })
 local Player  = Window:InitTab({ Title = 'Player' })
 local Misc    = Window:InitTab({ Title = 'Misc' })
 
+_G.AimLock = _G.AimLock or {
+    Enabled = false,
+    TargetPlayer = nil,
+    Smoothness = 0.2,
+    PredictionStrength = 0,
+    MaxDistance = 500,
+    WallCheck = true,
+    TeamCheck = true,
+    Keybind = Enum.KeyCode.Q,
+}
+
+local isLocking = false
+local targetPlayer = nil
+local connections = {}
+
 Combat:Section('Aim Lock')
 Combat:Toggle({
 	Title = 'Team Check',
-	Value = false,
+	Value = true,
 	Config = true,
 	CallBack = function(v)
 		_G.AimLock.TeamCheck = v
@@ -99,61 +113,58 @@ Combat:Toggle({
 })
 Combat:Toggle({
 	Title = 'Wall Check',
-	Value = false,
+	Value = true,
 	Config = true,
 	CallBack = function(v)
 		_G.AimLock.WallCheck = v
 	end,
 	Flag = 'AimLockWallCheck'
 })
-
-local Slider = a:CreateSlider({
-	Title = 'Aim Lock Options', -- Set Title
-	Description = '', -- Description (Optional)
-	Sliders = { -- Initialize the sliders
+Combat:CreateSlider({
+	Title = 'Aim Lock Options',
+	Description = '',
+	Sliders = {
 		{
-			Title = 'Prediction', -- Set Title
-			Range = {0, 10}, -- Set Range (Min, Max)
-			Increment = 0.1, -- Set Increment
-			StarterValue = 0, -- Set Starter Value
+			Title = 'Prediction',
+			Range = {0, 10},
+			Increment = 0.1,
+			StarterValue = 0,
 			CallBack = function(v)
-				_G.AimLock.Prediction = v
+				_G.AimLock.PredictionStrength = v
 			end,
-			Flag = 'AimLockPrediction' -- Use if you are running config saving, make sure each element has a diffrent Flag name.
+			Flag = 'AimLockPrediction'
 		},
 		{
 			Title = 'Smoothness',
-			Range = {0, 10},
-			Increment = 0.1,
+			Range = {0, 1},
+			Increment = 0.01,
 			StarterValue = 0.2,
 			CallBack = function(v)
 				_G.AimLock.Smoothness = v
 			end,
-			Flag = 'AimLockSmoothness' -- Use if you are running config saving, make sure each element has a diffrent Flag name.
+			Flag = 'AimLockSmoothness'
 		},
         {
 			Title = 'Max Distance',
 			Range = {0, 700},
-			Increment = 100,
+			Increment = 10,
 			StarterValue = 500,
 			CallBack = function(v)
 				_G.AimLock.MaxDistance = v
 			end,
-			Flag = 'AimLockMaxDistance' -- Use if you are running config saving, make sure each element has a diffrent Flag name.
+			Flag = 'AimLockMaxDistance'
 		},
 	}
 })
+Combat:Keybind({
+	Title = 'Aim Lock Keybind',
+	Key = Enum.KeyCode.Q;
+	CallBack = function(key)
+		_G.AimLock.Keybind = key
+	end,
+})
 
 Visuals:Section('Enemy Esp')
-Visuals:Toggle({
-	Title = 'Team Check',
-	Value = false,
-	Config = true,
-	CallBack = function(v)
-		_G.
-	end,
-	Flag = 'AimLockTeamCheck'
-})
 Visuals:Toggle({
 	Title = 'Enemy Box',
 	Value = false,
@@ -226,7 +237,6 @@ Player:Keybind({
 	end,
 })
 
-
 Misc:Section('Server')
 Misc:Button({
 	Title = 'Rejoin Server',
@@ -286,20 +296,6 @@ Misc:Button({
 	end,
 })
 
-_G.AimLock = _G.AimLock or {
-    Enabled = false,
-    TargetPlayer = nil,
-    Smoothness = 0.2,
-    PredictionStrength = 0,
-    MaxDistance = 500,
-    WallCheck = true,
-    TeamCheck = true,
-}
-
-local isLocking = false
-local targetPlayer = nil
-local connections = {}
-
 local function isTargetVisible(targetHead)
     if not _G.AimLock.WallCheck then
         return true
@@ -355,7 +351,7 @@ local function getClosestPlayer()
 end
 
 connections.InputBegan = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if input.KeyCode == Enum.KeyCode.Q and not gameProcessed then
+    if input.KeyCode == _G.AimLock.Keybind and not gameProcessed then
         isLocking = not isLocking
         _G.AimLock.Enabled = isLocking
         
@@ -363,29 +359,26 @@ connections.InputBegan = UserInputService.InputBegan:Connect(function(input, gam
             targetPlayer = getClosestPlayer()
             _G.AimLock.TargetPlayer = targetPlayer
             if targetPlayer then
-                print("Head lock ENABLED - Locked onto: " .. targetPlayer.Name)
                 syde:Notify({
-                    Title = 'Aim Lock',
-                    Content = "Head lock ENABLED - Locked onto: " .. targetPlayer.Name,
+                    Title = '🎯 Aim Lock',
+                    Content = "Locked → " .. targetPlayer.Name,
                     Duration = 2
                 })
             else
                 syde:Notify({
-                    Title = 'Aim Lock',
-                    Content = 'Head lock ENABLED - No valid target found',
+                    Title = '⚠️ Aim Lock',
+                    Content = 'No valid targets found',
                     Duration = 2
                 })
-                print("Head lock ENABLED - No valid target found")
                 isLocking = false
                 _G.AimLock.Enabled = false
             end
         else
             syde:Notify({
-                Title = 'Aim Lock',
-                Content = 'Head lock DISABLED',
-                Duration = 2
+                Title = '🎯 Aim Lock',
+                Content = 'Disabled',
+                Duration = 1.5
             })
-            print("Head lock DISABLED")
             targetPlayer = nil
             _G.AimLock.TargetPlayer = nil
         end
@@ -410,7 +403,12 @@ connections.RenderStepped = RunService.RenderStepped:Connect(function()
             local targetPos = Vector2.new(screenPos.X, screenPos.Y)
             local delta = targetPos - mousePos
             
-            local smoothDelta = delta * _G.AimLock.Smoothness
+            local smoothDelta
+            if _G.AimLock.Smoothness >= 1 then
+                smoothDelta = delta
+            else
+                smoothDelta = delta * _G.AimLock.Smoothness
+            end
             
             mousemoverel(smoothDelta.X, smoothDelta.Y)
         elseif not onScreen then
@@ -419,11 +417,10 @@ connections.RenderStepped = RunService.RenderStepped:Connect(function()
             _G.AimLock.Enabled = false
             _G.AimLock.TargetPlayer = nil
             syde:Notify({
-                Title = 'Aim Lock',
-                Content = 'Target lost - Press Q to re-enable',
-                Duration = 2
+                Title = '❌ Aim Lock',
+                Content = 'Target lost',
+                Duration = 1.5
             })
-            print("Target lost - Press Q to re-enable")
         end
     end
 end)
@@ -440,7 +437,6 @@ _G.UnloadAimLock = function()
     print("Aim lock unloaded")
 end
 
---// Main Loop
 local MainLoop = RunService.RenderStepped:Connect(function(dt)
     if Config.CFrameSpeed.Enabled then
         local char = LocalPlayer.Character
