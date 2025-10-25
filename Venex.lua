@@ -30,6 +30,7 @@ local TeleportService     = game:GetService("TeleportService")
 local TweenService        = game:GetService("TweenService")
 local UserInputService    = game:GetService("UserInputService")
 local RunService          = game:GetService("RunService")
+local HttpService         = game:GetService("HttpService")
 
 --// Variables
 local LocalPlayer          = Players.LocalPlayer
@@ -48,8 +49,8 @@ syde:Load({
 	Logo = '7488932274',
 	Name = 'Vantage Internal',
 	Status = 'Stable', -- {Stable, Unstable, Detected, Patched}
-	Accent = Color3.fromRGB(251, 144, 255), -- Window Accent Theme
-	HitBox = Color3.fromRGB(251, 144, 255), -- Window HitBox Theme (ex. Toggle Color)
+	Accent = Color3.fromRGB(255, 255, 255), -- Window Accent Theme
+	HitBox = Color3.fromRGB(255, 0, 0), -- Window HitBox Theme (ex. Toggle Color)
 	AutoLoad = false, -- Does Not Work !
 	Socials = {    -- Allows 1 Large and 2 Small Blocks
 		{
@@ -125,13 +126,13 @@ Visuals:Toggle({
 	Flag = 'EspEnemyHealthBar'
 })
 Visuals:ColorPicker({
-	Title = 'Box Color', -- Set Title
-	Linkable = false, -- Set if you want to link color to another colorpicker (Optional)
-	Color = Color3.fromRGB(255,255,255); -- Set Default Color
+	Title = 'Box Color',
+	Linkable = false,
+	Color = Color3.fromRGB(255,255,255);
 	CallBack = function(v)
 		VenexEsp.teamSettings.enemy.boxColor[1] = v
 	end,
-	Flag = 'EspEnemyBoxColor' -- Use if you are running config saving, make sure each element has a diffrent Flag name.
+	Flag = 'EspEnemyBoxColor'
 })
 
 Player:Section('Movement')
@@ -145,9 +146,9 @@ Player:Toggle({
 	Flag = 'CFrameSpeedEnabled'
 })
 Player:CreateSlider({
-	Title = 'CFrame Speed', -- Set Title
-	Description = '', -- Description (Optional)
-	Sliders = { -- Initialize the sliders
+	Title = 'CFrame Speed',
+	Description = '',
+	Sliders = {
 		{
 			Title = 'Speed',
 			Range = {0, 10},
@@ -197,7 +198,7 @@ Misc:Button({
             Duration = 5
         })
         local ok, res = pcall(function()
-            local s = safeHttpGet(string.format("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Desc&limit=100", game.PlaceId))
+            local s = HttpGet(string.format("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Desc&limit=100", game.PlaceId))
             return s and HttpService:JSONDecode(s) or nil
         end)
         if ok and res and res.data then
