@@ -34,7 +34,7 @@ local RunService          = game:GetService("RunService")
 --// Variables
 local LocalPlayer          = Players.LocalPlayer
 
-local syde         = Load("https://raw.githubusercontent.com/essencejs/syde/refs/heads/main/source",true)
+local syde         = Load("https://raw.githubusercontent.com/TheWooffles/syde/main/source",true)
 local VenexEsp     = Load('https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexESP/Venex.lua')
 
 local Config = {
@@ -149,44 +149,82 @@ Player:CreateSlider({
 	Description = '', -- Description (Optional)
 	Sliders = { -- Initialize the sliders
 		{
-			Title = 'Speed', -- Set Title
-			Range = {0, 10}, -- Set Range (Min, Max)
-			Increment = 1, -- Set Increment
-			StarterValue = 1, -- Set Starter Value
+			Title = 'Speed',
+			Range = {0, 10},
+			Increment = 1,
+			StarterValue = 1,
 			CallBack = function(v)
 				Config.CFrameSpeed.Speed = v
 			end,
-			Flag = 'CFrameSpeed' -- Use if you are running config saving, make sure each element has a diffrent Flag name.
+			Flag = 'CFrameSpeed'
 		},
 	}
 })
-
-local function ToggleCFrameSpeed()
-    Config.CFrameSpeed.Enabled = not Config.CFrameSpeed.Enabled
-end
 Player:Keybind({
-	Title = 'CFrame Speed KeyBind', -- Set Title
-	Key = Enum.KeyCode.V; -- Default Bind
+	Title = 'CFrame Speed KeyBind',
+	Key = Enum.KeyCode.V;
 	CallBack = function()
-		ToggleCFrameSpeed()
+		Config.CFrameSpeed.Enabled = not Config.CFrameSpeed.Enabled
 	end,
 })
 
 
 Misc:Section('Server')
 Misc:Button({
-	Title = 'Rejoin', -- Set Title
-	Description = 'Rejoins Current Server', -- Description (Optional)
-	Type = 'Default', -- Type [ Default, Hold ] (Optional)
-	HoldTime = 2, -- Hold Time When Type is *Hold
+	Title = 'Rejoin Server',
+	Description = 'Rejoins Current Server',
+	Type = 'Default',
+	HoldTime = 2,
 	CallBack = function()
         syde:Notify({
-            Title = 'Server',
+            Title = 'Rejoin Server',
             Content = 'Rejoining current server...',
             Duration = 5
         })
         task.wait(0.7)
         TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+	end,
+})
+Misc:Button({
+	Title = 'Server Hop',
+	Description = 'Hops to a Different Server',
+	Type = 'Default',
+	HoldTime = 2,
+	CallBack = function()
+        syde:Notify({
+            Title = 'Server Hop',
+            Content = 'Searching for another server...',
+            Duration = 5
+        })
+        local ok, res = pcall(function()
+            local s = safeHttpGet(string.format("https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Desc&limit=100", game.PlaceId))
+            return s and HttpService:JSONDecode(s) or nil
+        end)
+        if ok and res and res.data then
+            for _, server in ipairs(res.data) do
+                if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                    syde:Notify({
+                        Title = 'Server Hop',
+                        Content = 'Joining a new server...',
+                        Duration = 3
+                    })
+                    task.wait(0.5)
+                    TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
+                    return
+                end
+            end
+            syde:Notify({
+                Title = 'Server Hop',
+                Content = 'No other servers found.',
+                Duration = 3
+            })
+        else
+            syde:Notify({
+                Title = 'Server Hop',
+                Content = 'Failed to fetch server list.',
+                Duration = 5
+            })
+        end
 	end,
 })
 
