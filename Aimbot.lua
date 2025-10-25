@@ -1,91 +1,134 @@
---// Services & Variables
-local Players          = game:GetService("Players")
-local LocalPlayer      = Players.LocalPlayer
-local Camera           = workspace.CurrentCamera
-local RunService       = game:GetService("RunService")
+-- Simple Head Lock Script using mousemoverel
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local TweenService     = game:GetService("TweenService")
-local Holding          = false
 
---// Config
-_G.AimbotEnabled = true
-_G.TeamCheck     = true
-_G.WallCheck     = true
-_G.AimPart       = "Head"
-_G.Smoothness    = 0.2
-_G.Radius        = 30
-_G.FovColor      = Color3.fromRGB(255,255,255)
-_G.FovVisible    = true
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local Camera = workspace.CurrentCamera
 
---// Gui
-local FovCircle     = Drawing.new("Circle")
-FovCircle.Position  = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-FovCircle.Radius    = _G.Radius
-FovCircle.Color     = _G.FovColor
-FovCircle.Visible   = _G.FovVisible
-FovCircle.Thickness = 1
+-- Global aim lock options
+getgenv().AimLock = getgenv().AimLock or {
+    Enabled = false,
+    TargetPlayer = nil,
+    Smoothness = 0.15,  -- Lower = smoother (0.1-0.3 recommended)
+    PredictionStrength = 0.1,  -- Velocity prediction
+    MaxDistance = 500,  -- Maximum lock distance
+}
 
---// Logic & Main Loop
-local function GetClosestPlayer()
-    local MaximumDistance = _G.Radius
-    local Target = nil
+local isLocking = false
+local targetPlayer = nil
 
-    for _, v in next, Players:GetPlayers() do
-        if v.Name ~= LocalPlayer.Name then
-            if _G.TeamCheck == true then
-                if v.Team ~= LocalPlayer.Team then
-                    if v.Character ~= nil then
-                        if v.Character:FindFirstChild("HumanoidRootPart") ~= nil then
-                            if v.Character:FindFirstChild("Humanoid") ~= nil and v.Character:FindFirstChild("Humanoid").Health ~= 0 then
-                                local ScreenPoint = Camera:WorldToViewportPoint(v.Character:WaitForChild("HumanoidRootPart", math.huge).Position)
-                                local VectorDistance = (Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2.new(ScreenPoint.X, ScreenPoint.Y)).Magnitude
+-- Function to check if target is behind a wall
+local function isTargetVisible(targetHead)
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("Head") then
+        return false
+    end
+    
+    local origin = Camera.CFrame.Position
+    local direction = (targetHead.Position - origin).Unit * (targetHead.Position - origin).Magnitude
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, targetPlayer.Character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    
+    local rayResult = workspace:Raycast(origin, direction, raycastParams)
+    
+    -- If raycast hits something, target is behind a wall
+    return rayResult == nil
+end
 
-                                if VectorDistance < MaximumDistance then
-                                    Target = v
-                                end
-                            end
-                        end
-                    end
-                end
-            else
-                if v.Character ~= nil then
-                        if v.Character:FindFirstChild("HumanoidRootPart") ~= nil then
-                            if v.Character:FindFirstChild("Humanoid") ~= nil and v.Character:FindFirstChild("Humanoid").Health ~= 0 then
-                                local ScreenPoint = Camera:WorldToViewportPoint(v.Character:WaitForChild("HumanoidRootPart", math.huge).Position)
-                                local VectorDistance = (Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2.new(ScreenPoint.X, ScreenPoint.Y)).Magnitude
-
-                                if VectorDistance < MaximumDistance then
-                                    Target = v
-                                end
-                            end
-                        end
+-- Function to get the closest player to the mouse
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local head = player.Character.Head
+            local headPos = head.Position
+            local distance = (LocalPlayer.Character.Head.Position - headPos).Magnitude
+            
+            -- Check if within max distance
+            if distance <= getgenv().AimLock.MaxDistance then
+                local screenPos, onScreen = Camera:WorldToScreenPoint(headPos)
+                
+                if onScreen then
+                    local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+                    local screenDistance = (mousePos - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                    
+                    if screenDistance < shortestDistance then
+                        shortestDistance = screenDistance
+                        closestPlayer = player
                     end
                 end
             end
         end
     end
-    return Target
+    
+    return closestPlayer
 end
 
-UserInputService.InputBegan:Connect(function(Input)
-    if Input.UserInputType == Enum.UserInputType.MouseButton2 then
-        Holding = true
+-- Handle Q key toggle
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode.Q and not gameProcessed then
+        isLocking = not isLocking
+        getgenv().AimLock.Enabled = isLocking
+        
+        if isLocking then
+            targetPlayer = getClosestPlayer()
+            getgenv().AimLock.TargetPlayer = targetPlayer
+            if targetPlayer then
+                print("Head lock ENABLED - Locked onto: " .. targetPlayer.Name)
+            else
+                print("Head lock ENABLED - No valid target found")
+                isLocking = false
+                getgenv().AimLock.Enabled = false
+            end
+        else
+            print("Head lock DISABLED")
+            targetPlayer = nil
+            getgenv().AimLock.TargetPlayer = nil
+        end
     end
 end)
 
-UserInputService.InputEnded:Connect(function(Input)
-    if Input.UserInputType == Enum.UserInputType.MouseButton2 then
-        Holding = false
-    end
-end)
-
+-- Main lock loop with smooth movement
 RunService.RenderStepped:Connect(function()
-    FovCircle.Position = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
-    FovCircle.Radius   = _G.Radius
-    FovCircle.Color    = _G.FovColor
-
-    if Holding == true and _G.AimbotEnabled == true then 
-        local cf = CFrame.new(Camera.CFrame.Position, GetClosestPlayer().Character[_G.AimPart].Position)
-        Camera.CFrame:Lerp(cf, math.clamp(_G.Smoothness))
+    if isLocking and targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Head") then
+        local head = targetPlayer.Character.Head
+        local headPos = head.Position
+        
+        -- Predict movement based on velocity
+        if targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = targetPlayer.Character.HumanoidRootPart
+            local velocity = hrp.Velocity or hrp.AssemblyLinearVelocity or Vector3.new(0, 0, 0)
+            headPos = headPos + (velocity * getgenv().AimLock.PredictionStrength)
+        end
+        
+        local screenPos, onScreen = Camera:WorldToScreenPoint(headPos)
+        
+        -- Check if target is visible (not behind wall)
+        if onScreen and isTargetVisible(head) then
+            local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+            local targetPos = Vector2.new(screenPos.X, screenPos.Y)
+            local delta = targetPos - mousePos
+            
+            -- Apply smoothness for natural movement
+            local smoothDelta = delta * getgenv().AimLock.Smoothness
+            
+            -- Use mousemoverel with smoothed delta
+            mousemoverel(smoothDelta.X, smoothDelta.Y)
+        elseif not onScreen then
+            -- If target goes off screen, stop locking
+            isLocking = false
+            targetPlayer = nil
+            getgenv().AimLock.Enabled = false
+            getgenv().AimLock.TargetPlayer = nil
+            print("Target lost - Press Q to re-enable")
+        end
     end
 end)
+
+print("Head lock script loaded. Press Q to toggle lock on/off.")
+print("Customize settings: getgenv().AimLock.Smoothness, .PredictionStrength, .MaxDistance")

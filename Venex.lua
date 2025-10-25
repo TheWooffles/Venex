@@ -1,5 +1,4 @@
 if _G.VantageExecuted then
-	Library:Notify('[Vantage] Error : Already Loaded!', 5)
     return warn("[Vantage] Error : Already Loaded!")
 end
 
@@ -24,16 +23,16 @@ local function Load(url)
     return nil
 end
 
---// Services
+--// Services & Variables
 local Players             = game:GetService("Players")
 local TeleportService     = game:GetService("TeleportService")
 local TweenService        = game:GetService("TweenService")
 local UserInputService    = game:GetService("UserInputService")
 local RunService          = game:GetService("RunService")
 local HttpService         = game:GetService("HttpService")
-
---// Variables
-local LocalPlayer          = Players.LocalPlayer
+local LocalPlayer         = Players.LocalPlayer
+local Mouse               = LocalPlayer:GetMouse()
+local Camera              = workspace.CurrentCamera
 
 local syde         = Load("https://raw.githubusercontent.com/TheWooffles/syde/main/source",true)
 local VenexEsp     = Load('https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexESP/Venex.lua')
@@ -88,15 +87,72 @@ local Visuals = Window:InitTab({ Title = 'Visuals' })
 local Player  = Window:InitTab({ Title = 'Player' })
 local Misc    = Window:InitTab({ Title = 'Misc' })
 
-Visuals:Section('Enemy Esp')
-Visuals:Toggle({
-	Title = 'Enable Enemy Esp',
+Combat:Section('Aim Lock')
+Combat:Toggle({
+	Title = 'Team Check',
 	Value = false,
 	Config = true,
 	CallBack = function(v)
-		VenexEsp.teamSettings.enemy.enabled = v
+		_G.AimLock.TeamCheck = v
 	end,
-	Flag = 'EspEnemy'
+	Flag = 'AimLockTeamCheck'
+})
+Combat:Toggle({
+	Title = 'Wall Check',
+	Value = false,
+	Config = true,
+	CallBack = function(v)
+		_G.AimLock.WallCheck = v
+	end,
+	Flag = 'AimLockWallCheck'
+})
+
+local Slider = a:CreateSlider({
+	Title = 'Aim Lock Options', -- Set Title
+	Description = '', -- Description (Optional)
+	Sliders = { -- Initialize the sliders
+		{
+			Title = 'Prediction', -- Set Title
+			Range = {0, 10}, -- Set Range (Min, Max)
+			Increment = 0.1, -- Set Increment
+			StarterValue = 0, -- Set Starter Value
+			CallBack = function(v)
+				_G.AimLock.Prediction = v
+			end,
+			Flag = 'AimLockPrediction' -- Use if you are running config saving, make sure each element has a diffrent Flag name.
+		},
+		{
+			Title = 'Smoothness',
+			Range = {0, 10},
+			Increment = 0.1,
+			StarterValue = 0.2,
+			CallBack = function(v)
+				_G.AimLock.Smoothness = v
+			end,
+			Flag = 'AimLockSmoothness' -- Use if you are running config saving, make sure each element has a diffrent Flag name.
+		},
+        {
+			Title = 'Max Distance',
+			Range = {0, 700},
+			Increment = 100,
+			StarterValue = 500,
+			CallBack = function(v)
+				_G.AimLock.MaxDistance = v
+			end,
+			Flag = 'AimLockMaxDistance' -- Use if you are running config saving, make sure each element has a diffrent Flag name.
+		},
+	}
+})
+
+Visuals:Section('Enemy Esp')
+Visuals:Toggle({
+	Title = 'Team Check',
+	Value = false,
+	Config = true,
+	CallBack = function(v)
+		_G.
+	end,
+	Flag = 'AimLockTeamCheck'
 })
 Visuals:Toggle({
 	Title = 'Enemy Box',
@@ -229,6 +285,160 @@ Misc:Button({
         end
 	end,
 })
+
+_G.AimLock = _G.AimLock or {
+    Enabled = false,
+    TargetPlayer = nil,
+    Smoothness = 0.2,
+    PredictionStrength = 0,
+    MaxDistance = 500,
+    WallCheck = true,
+    TeamCheck = true,
+}
+
+local isLocking = false
+local targetPlayer = nil
+local connections = {}
+
+local function isTargetVisible(targetHead)
+    if not _G.AimLock.WallCheck then
+        return true
+    end
+    
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("Head") then
+        return false
+    end
+    
+    local origin = Camera.CFrame.Position
+    local direction = (targetHead.Position - origin).Unit * (targetHead.Position - origin).Magnitude
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, targetPlayer.Character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    
+    local rayResult = workspace:Raycast(origin, direction, raycastParams)
+    
+    return rayResult == nil
+end
+
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            if _G.AimLock.TeamCheck and player.Team == LocalPlayer.Team then
+                continue
+            end
+            
+            local head = player.Character.Head
+            local headPos = head.Position
+            local distance = (LocalPlayer.Character.Head.Position - headPos).Magnitude
+            
+            if distance <= _G.AimLock.MaxDistance then
+                local screenPos, onScreen = Camera:WorldToScreenPoint(headPos)
+                
+                if onScreen then
+                    local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+                    local screenDistance = (mousePos - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+                    
+                    if screenDistance < shortestDistance then
+                        shortestDistance = screenDistance
+                        closestPlayer = player
+                    end
+                end
+            end
+        end
+    end
+    
+    return closestPlayer
+end
+
+connections.InputBegan = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode.Q and not gameProcessed then
+        isLocking = not isLocking
+        _G.AimLock.Enabled = isLocking
+        
+        if isLocking then
+            targetPlayer = getClosestPlayer()
+            _G.AimLock.TargetPlayer = targetPlayer
+            if targetPlayer then
+                print("Head lock ENABLED - Locked onto: " .. targetPlayer.Name)
+                syde:Notify({
+                    Title = 'Aim Lock',
+                    Content = "Head lock ENABLED - Locked onto: " .. targetPlayer.Name,
+                    Duration = 2
+                })
+            else
+                syde:Notify({
+                    Title = 'Aim Lock',
+                    Content = 'Head lock ENABLED - No valid target found',
+                    Duration = 2
+                })
+                print("Head lock ENABLED - No valid target found")
+                isLocking = false
+                _G.AimLock.Enabled = false
+            end
+        else
+            syde:Notify({
+                Title = 'Aim Lock',
+                Content = 'Head lock DISABLED',
+                Duration = 2
+            })
+            print("Head lock DISABLED")
+            targetPlayer = nil
+            _G.AimLock.TargetPlayer = nil
+        end
+    end
+end)
+
+connections.RenderStepped = RunService.RenderStepped:Connect(function()
+    if isLocking and targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Head") then
+        local head = targetPlayer.Character.Head
+        local headPos = head.Position
+        
+        if targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = targetPlayer.Character.HumanoidRootPart
+            local velocity = hrp.Velocity or hrp.AssemblyLinearVelocity or Vector3.new(0, 0, 0)
+            headPos = headPos + (velocity * _G.AimLock.PredictionStrength)
+        end
+        
+        local screenPos, onScreen = Camera:WorldToScreenPoint(headPos)
+        
+        if onScreen and isTargetVisible(head) then
+            local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+            local targetPos = Vector2.new(screenPos.X, screenPos.Y)
+            local delta = targetPos - mousePos
+            
+            local smoothDelta = delta * _G.AimLock.Smoothness
+            
+            mousemoverel(smoothDelta.X, smoothDelta.Y)
+        elseif not onScreen then
+            isLocking = false
+            targetPlayer = nil
+            _G.AimLock.Enabled = false
+            _G.AimLock.TargetPlayer = nil
+            syde:Notify({
+                Title = 'Aim Lock',
+                Content = 'Target lost - Press Q to re-enable',
+                Duration = 2
+            })
+            print("Target lost - Press Q to re-enable")
+        end
+    end
+end)
+
+_G.UnloadAimLock = function()
+    for _, connection in pairs(connections) do
+        connection:Disconnect()
+    end
+    connections = {}
+    isLocking = false
+    targetPlayer = nil
+    _G.AimLock.Enabled = false
+    _G.AimLock.TargetPlayer = nil
+    print("Aim lock unloaded")
+end
 
 --// Main Loop
 local MainLoop = RunService.RenderStepped:Connect(function(dt)
