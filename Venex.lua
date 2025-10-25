@@ -189,12 +189,19 @@ local function ApplyNoTextures(enabled)
     end
 end
 
+-- Helper function to check if a player is alive
+local function isPlayerAlive(player)
+    if not player or not player.Character then return false end
+    local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+    return humanoid and humanoid.Health > 0
+end
+
 -- Trigger Bot Functions
 local triggerBotActive = false
 local lastShootTime = 0
 
 local function isPlayerInCrosshair()
-    if not LocalPlayer.Character then return false, nil end
+    if not LocalPlayer.Character or not isPlayerAlive(LocalPlayer) then return false, nil end
     
     local ray = Camera:ScreenPointToRay(Mouse.X, Mouse.Y)
     local raycastParams = RaycastParams.new()
@@ -210,7 +217,7 @@ local function isPlayerInCrosshair()
         if targetChar then
             local targetPlayer = Players:GetPlayerFromCharacter(targetChar)
             
-            if targetPlayer and targetPlayer ~= LocalPlayer then
+            if targetPlayer and targetPlayer ~= LocalPlayer and isPlayerAlive(targetPlayer) then
                 -- Team check
                 if Config.TriggerBot.TeamCheck and targetPlayer.Team == LocalPlayer.Team then
                     return false, nil
@@ -272,6 +279,20 @@ local function TriggerShoot()
 end
 
 Combat:Section('Aim Lock')
+Combat:Toggle({
+	Title = 'Aim Lock Enabled',
+	Value = false,
+	Config = true,
+	CallBack = function(v)
+		if not v then
+			isLocking = false
+			targetPlayer = nil
+			_G.AimLock.Enabled = false
+			_G.AimLock.TargetPlayer = nil
+		end
+	end,
+	Flag = 'AimLockManualToggle'
+})
 Combat:Toggle({
 	Title = 'Team Check',
 	Value = true,
@@ -344,13 +365,13 @@ local TriggerBotToggle = Combat:Toggle({
 		triggerBotActive = v
 		if v then
 			syde:Notify({
-				Title = '🎯 Trigger Bot',
+				Title = 'Trigger Bot',
 				Content = 'Enabled - Aim at enemies to auto-shoot',
 				Duration = 2
 			})
 		else
 			syde:Notify({
-				Title = '🎯 Trigger Bot',
+				Title = 'Trigger Bot',
 				Content = 'Disabled',
 				Duration = 1.5
 			})
@@ -422,6 +443,15 @@ Combat:Keybind({
 })
 
 Visuals:Section('Enemy Esp')
+Visuals:Toggle({
+	Title = 'Enabled',
+	Value = false,
+	Config = true,
+	CallBack = function(v)
+		VenexEsp.enabled = v
+	end,
+	Flag = 'EspEnabled'
+})
 Visuals:Toggle({
 	Title = 'Enemy Box',
 	Value = false,
@@ -503,7 +533,7 @@ World:Toggle({
 		Config.World.Fullbright = v
 		ApplyFullbright(v)
 		syde:Notify({
-			Title = '🌟 Fullbright',
+			Title = 'Fullbright',
 			Content = v and 'Enabled' or 'Disabled',
 			Duration = 1.5
 		})
@@ -518,7 +548,7 @@ World:Toggle({
 		Config.World.NoShadows = v
 		ApplyNoShadows(v)
 		syde:Notify({
-			Title = '☀️ No Shadows',
+			Title = 'No Shadows',
 			Content = v and 'Enabled' or 'Disabled',
 			Duration = 1.5
 		})
@@ -533,7 +563,7 @@ World:Toggle({
 		Config.World.NoTextures = v
 		ApplyNoTextures(v)
 		syde:Notify({
-			Title = '🎨 No Textures',
+			Title = 'No Textures',
 			Content = v and 'Enabled - Performance Mode' or 'Disabled',
 			Duration = 1.5
 		})
@@ -553,7 +583,7 @@ World:Button({
 		ApplyNoShadows(false)
 		ApplyNoTextures(false)
 		syde:Notify({
-			Title = '🔄 Lighting Reset',
+			Title = 'Lighting Reset',
 			Content = 'All world settings restored',
 			Duration = 2
 		})
@@ -632,7 +662,7 @@ local function isTargetVisible(targetHead)
     local direction = (targetHead.Position - origin).Unit * (targetHead.Position - origin).Magnitude
     
     local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, targetPlayer.Character}
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, targetPlayer and targetPlayer.Character or nil}
     raycastParams.FilterType = Enum.RaycastFilterType.Exclude
     
     local rayResult = workspace:Raycast(origin, direction, raycastParams)
@@ -645,7 +675,7 @@ local function getClosestPlayer()
     local shortestDistance = math.huge
     
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+        if player ~= LocalPlayer and isPlayerAlive(player) and player.Character:FindFirstChild("Head") then
             if _G.AimLock.TeamCheck and player.Team == LocalPlayer.Team then
                 continue
             end
@@ -676,32 +706,34 @@ end
 connections.InputBegan = UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.KeyCode == _G.AimLock.Keybind and not gameProcessed then
         isLocking = not isLocking
-        _G.AimLock.Enabled = isLocking
         
         if isLocking then
             targetPlayer = getClosestPlayer()
-            _G.AimLock.TargetPlayer = targetPlayer
             if targetPlayer then
+                _G.AimLock.Enabled = true
+                _G.AimLock.TargetPlayer = targetPlayer
                 syde:Notify({
-                    Title = '🎯 Aim Lock',
-                    Content = "Locked → " .. targetPlayer.Name,
+                    Title = 'Aim Lock',
+                    Content = "Locked to " .. targetPlayer.Name,
                     Duration = 2
                 })
             else
                 syde:Notify({
-                    Title = '⚠️ Aim Lock',
+                    Title = 'Aim Lock',
                     Content = 'No valid targets found',
                     Duration = 2
                 })
                 isLocking = false
                 _G.AimLock.Enabled = false
+                _G.AimLock.TargetPlayer = nil
             end
         else
             syde:Notify({
-                Title = '🎯 Aim Lock',
+                Title = 'Aim Lock',
                 Content = 'Disabled',
                 Duration = 1.5
             })
+            _G.AimLock.Enabled = false
             targetPlayer = nil
             _G.AimLock.TargetPlayer = nil
         end
@@ -709,7 +741,32 @@ connections.InputBegan = UserInputService.InputBegan:Connect(function(input, gam
 end)
 
 connections.RenderStepped = RunService.RenderStepped:Connect(function()
-    if isLocking and targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Head") then
+    -- Check if local player is alive
+    if not isPlayerAlive(LocalPlayer) then
+        if isLocking then
+            isLocking = false
+            targetPlayer = nil
+            _G.AimLock.Enabled = false
+            _G.AimLock.TargetPlayer = nil
+        end
+        return
+    end
+    
+    if isLocking and targetPlayer then
+        -- Check if target is still alive
+        if not isPlayerAlive(targetPlayer) or not targetPlayer.Character:FindFirstChild("Head") then
+            isLocking = false
+            targetPlayer = nil
+            _G.AimLock.Enabled = false
+            _G.AimLock.TargetPlayer = nil
+            syde:Notify({
+                Title = 'Aim Lock',
+                Content = 'Target eliminated',
+                Duration = 1.5
+            })
+            return
+        end
+        
         local head = targetPlayer.Character.Head
         local headPos = head.Position
         
@@ -740,7 +797,7 @@ connections.RenderStepped = RunService.RenderStepped:Connect(function()
             _G.AimLock.Enabled = false
             _G.AimLock.TargetPlayer = nil
             syde:Notify({
-                Title = '❌ Aim Lock',
+                Title = 'Aim Lock',
                 Content = 'Target lost',
                 Duration = 1.5
             })
