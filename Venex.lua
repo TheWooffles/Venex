@@ -162,7 +162,7 @@ Player:CreateSlider({
 })
 
 local function ToggleCFrameSpeed()
-    Config.CFrameSpeed.Enabled != Config.CFrameSpeed.Enabled
+    Config.CFrameSpeed.Enabled = not Config.CFrameSpeed.Enabled
 end
 Player:Keybind({
 	Title = 'CFrame Speed KeyBind', -- Set Title
