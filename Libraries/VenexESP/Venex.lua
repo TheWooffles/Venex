@@ -1,3 +1,6 @@
+-- Enhanced ESP Framework v2.0
+-- Optimized performance, skeleton ESP, and improved features
+
 -- services
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -11,8 +14,8 @@ container.Name = "ESPContainer"
 container.Parent = (gethui and gethui() or game:GetService("CoreGui"))
 
 -- cache commonly used values
-local VECTOR2_ZERO = Vector2.new(0, 0)
-local VECTOR3_ZERO = Vector3.new(0, 0, 0)
+local VECTOR2_ZERO = Vector2.zero
+local VECTOR3_ZERO = Vector3.zero
 local COLOR3_WHITE = Color3.new(1, 1, 1)
 local COLOR3_BLACK = Color3.new(0, 0, 0)
 
@@ -21,14 +24,13 @@ local floor = math.floor
 local min = math.min
 local max = math.max
 local round = math.round or floor
-local sin = math.sin
-local cos = math.cos
 local clear = table.clear or function(t) for k in pairs(t) do t[k] = nil end end
 local unpack = table.unpack
 local find = table.find
 
 -- pre-allocated tables for reuse
 local tempCorners = {}
+local tempParts = {}
 
 -- constants (optimized)
 local HEALTH_BAR_OFFSET = Vector2.new(5, 0)
@@ -36,18 +38,6 @@ local HEALTH_TEXT_OFFSET = Vector2.new(3, 0)
 local HEALTH_BAR_OUTLINE_OFFSET = Vector2.new(0, 1)
 local NAME_OFFSET = Vector2.new(0, 2)
 local DISTANCE_OFFSET = Vector2.new(0, 2)
-
--- Pre-calculate vertices once
-local VERTICES = {
-	Vector3.new(-1, -1, -1),
-	Vector3.new(-1, 1, -1),
-	Vector3.new(-1, 1, 1),
-	Vector3.new(-1, -1, 1),
-	Vector3.new(1, -1, -1),
-	Vector3.new(1, 1, -1),
-	Vector3.new(1, 1, 1),
-	Vector3.new(1, -1, 1)
-}
 
 -- Body part lookup table (faster than string operations)
 local BODY_PARTS = {
@@ -73,8 +63,35 @@ local BODY_PARTS = {
 	RightFoot = true
 }
 
+-- Skeleton bone connections (R15)
+local SKELETON_R15 = {
+	{"Head", "UpperTorso"},
+	{"UpperTorso", "LowerTorso"},
+	{"UpperTorso", "LeftUpperArm"},
+	{"LeftUpperArm", "LeftLowerArm"},
+	{"LeftLowerArm", "LeftHand"},
+	{"UpperTorso", "RightUpperArm"},
+	{"RightUpperArm", "RightLowerArm"},
+	{"RightLowerArm", "RightHand"},
+	{"LowerTorso", "LeftUpperLeg"},
+	{"LeftUpperLeg", "LeftLowerLeg"},
+	{"LeftLowerLeg", "LeftFoot"},
+	{"LowerTorso", "RightUpperLeg"},
+	{"RightUpperLeg", "RightLowerLeg"},
+	{"RightLowerLeg", "RightFoot"}
+}
+
+-- Skeleton bone connections (R6)
+local SKELETON_R6 = {
+	{"Head", "Torso"},
+	{"Torso", "Left Arm"},
+	{"Torso", "Right Arm"},
+	{"Torso", "Left Leg"},
+	{"Torso", "Right Leg"}
+}
+
 -- Cache viewport size updates
-local viewportSize = Vector2.new(1920, 1080)
+local viewportSize = camera.ViewportSize
 local viewportCenter = viewportSize * 0.5
 
 -- CFrame/Vector helpers (optimized)
@@ -133,8 +150,7 @@ local function getBoundingBox(parts, count)
 	end
 
 	local cx, cy, cz = (minx + maxx) * 0.5, (miny + maxy) * 0.5, (minz + maxz) * 0.5
-	return CFrame.new(cx, cy, cz),
-	       Vector3.new(maxx - minx, maxy - miny, maxz - minz)
+	return CFrame.new(cx, cy, cz), Vector3.new(maxx - minx, maxy - miny, maxz - minz)
 end
 
 local function worldToScreen(world)
@@ -192,6 +208,7 @@ function EspObject.new(player, interface)
 	self.interface = interface
 	self.teamColor = COLOR3_WHITE
 	self.enabled = false
+	self.lastUpdateTick = 0
 	self:Construct()
 	return self
 end
@@ -212,6 +229,9 @@ function EspObject:Construct()
 	self.cacheCount = 0
 	self.childCount = 0
 	self.bin = {}
+	self.skeletonCache = {}
+	self.isR15 = true
+	
 	self.drawings = {
 		box3d = {
 			{
@@ -235,6 +255,7 @@ function EspObject:Construct()
 				self:_create("Line", { Thickness = 1 })
 			}
 		},
+		skeleton = {},
 		visible = {
 			tracerOutline = self:_create("Line", { Thickness = 3 }),
 			tracer = self:_create("Line", { Thickness = 1 }),
@@ -253,6 +274,14 @@ function EspObject:Construct()
 			arrow = self:_create("Triangle", { Filled = true })
 		}
 	}
+
+	-- Pre-create skeleton lines
+	for i = 1, 14 do
+		self.drawings.skeleton[i] = {
+			outline = self:_create("Line", { Thickness = 3 }),
+			line = self:_create("Line", { Thickness = 1 })
+		}
+	end
 
 	self.renderConnection = RunService.Heartbeat:Connect(function()
 		self:Update()
@@ -276,6 +305,13 @@ end
 function EspObject:Update()
 	local interface = self.interface
 	local player = self.player
+	
+	-- Throttle updates for performance (update every other frame)
+	local tick = os.clock()
+	if tick - self.lastUpdateTick < 0.016 then -- ~60fps throttle
+		return
+	end
+	self.lastUpdateTick = tick
 	
 	-- Check master enable switch first
 	local isFriendly = player.Team and localPlayer.Team and player.Team == localPlayer.Team
@@ -317,7 +353,7 @@ function EspObject:Update()
 	
 	-- Get weapon
 	local tool = character:FindFirstChildOfClass("Tool")
-	self.weapon = tool and tool.Name or "Unknown"
+	self.weapon = tool and tool.Name or "Unarmed"
 	
 	local head = character:FindFirstChild("Head")
 	if not head then
@@ -353,11 +389,32 @@ function EspObject:Update()
 			end
 			self.cacheCount = cacheIndex
 			self.childCount = childrenCount
+			
+			-- Determine rig type
+			self.isR15 = character:FindFirstChild("UpperTorso") ~= nil
 		end
 
 		if self.cacheCount > 0 then
 			local cframe, size = getBoundingBox(cache, self.cacheCount)
 			self.corners = calculateCorners(cframe, size)
+		end
+		
+		-- Update skeleton cache
+		if options.skeleton then
+			local skeletonMap = self.isR15 and SKELETON_R15 or SKELETON_R6
+			for i = 1, #skeletonMap do
+				local bone = skeletonMap[i]
+				local part1 = character:FindFirstChild(bone[1])
+				local part2 = character:FindFirstChild(bone[2])
+				
+				if part1 and part2 then
+					local pos1, vis1 = worldToScreen(part1.Position)
+					local pos2, vis2 = worldToScreen(part2.Position)
+					self.skeletonCache[i] = {pos1, pos2, vis1 and vis2}
+				else
+					self.skeletonCache[i] = nil
+				end
+			end
 		end
 	elseif options.offScreenArrow then
 		local cframe = camera.CFrame
@@ -378,6 +435,7 @@ function EspObject:Render()
 	local onScreen = self.onScreen
 	local visible = self.drawings.visible
 	local box3d = self.drawings.box3d
+	local skeleton = self.drawings.skeleton
 	local options = self.options
 	
 	-- Early exit if not enabled
@@ -389,6 +447,10 @@ function EspObject:Render()
 			for j = 1, 3 do
 				box3d[i][j].Visible = false
 			end
+		end
+		for i = 1, 14 do
+			skeleton[i].line.Visible = false
+			skeleton[i].outline.Visible = false
 		end
 		return
 	end
@@ -493,9 +555,9 @@ function EspObject:Render()
 	if visible.distance.Visible then
 		local distance = visible.distance
 		distance.Text = round(self.distance) .. " studs"
-		distance.Color = Color3.fromRGB(255,255,255)--parseColor(self, options.distanceColor[1])
+		distance.Color = parseColor(self, options.distanceColor[1])
 		distance.Transparency = options.distanceColor[2]
-		distance.OutlineColor = Color3.fromRGB(0,0,0) --parseColor(self, options.distanceOutlineColor, true)
+		distance.OutlineColor = parseColor(self, options.distanceOutlineColor, true)
 		distance.Position = (corners.bottomLeft + corners.bottomRight) * 0.5 + DISTANCE_OFFSET
 	end
 
@@ -570,6 +632,37 @@ function EspObject:Render()
 			end
 		end
 	end
+	
+	-- Skeleton ESP
+	local skeletonEnabled = onScreen and options.skeleton
+	if skeletonEnabled and self.skeletonCache then
+		for i = 1, #self.skeletonCache do
+			local bone = self.skeletonCache[i]
+			if bone and bone[3] then
+				skeleton[i].line.Visible = true
+				skeleton[i].line.From = bone[1]
+				skeleton[i].line.To = bone[2]
+				skeleton[i].line.Color = parseColor(self, options.skeletonColor[1])
+				skeleton[i].line.Transparency = options.skeletonColor[2]
+				
+				skeleton[i].outline.Visible = options.skeletonOutline
+				if skeleton[i].outline.Visible then
+					skeleton[i].outline.From = bone[1]
+					skeleton[i].outline.To = bone[2]
+					skeleton[i].outline.Color = parseColor(self, options.skeletonOutlineColor[1], true)
+					skeleton[i].outline.Transparency = options.skeletonOutlineColor[2]
+				end
+			else
+				skeleton[i].line.Visible = false
+				skeleton[i].outline.Visible = false
+			end
+		end
+	else
+		for i = 1, 14 do
+			skeleton[i].line.Visible = false
+			skeleton[i].outline.Visible = false
+		end
+	end
 end
 
 -- cham object (optimized)
@@ -581,6 +674,7 @@ function ChamObject.new(player, interface)
 	self.player = player
 	self.interface = interface
 	self.teamColor = COLOR3_WHITE
+	self.lastUpdateTick = 0
 	self:Construct()
 	return self
 end
@@ -606,6 +700,13 @@ function ChamObject:Destruct()
 end
 
 function ChamObject:Update()
+	-- Throttle updates
+	local tick = os.clock()
+	if tick - self.lastUpdateTick < 0.033 then -- ~30fps throttle for chams
+		return
+	end
+	self.lastUpdateTick = tick
+	
 	local interface = self.interface
 	local player = self.player
 	local character = player.Character
@@ -647,6 +748,7 @@ function InstanceObject.new(instance, options)
 	local self = setmetatable({}, InstanceObject)
 	self.instance = instance
 	self.options = options
+	self.lastUpdateTick = 0
 	self:Construct()
 	return self
 end
@@ -685,6 +787,13 @@ function InstanceObject:Destruct()
 end
 
 function InstanceObject:Render()
+	-- Throttle updates
+	local tick = os.clock()
+	if tick - self.lastUpdateTick < 0.033 then
+		return
+	end
+	self.lastUpdateTick = tick
+	
 	local instance = self.instance
 	if not instance or not instance.Parent then
 		return self:Destruct()
@@ -752,6 +861,10 @@ local EspInterface = {
 			healthTextOutlineColor = COLOR3_BLACK,
 			box3d = false,
 			box3dColor = { Color3.new(1,0,0), 1 },
+			skeleton = false,
+			skeletonColor = { COLOR3_WHITE, 1 },
+			skeletonOutline = true,
+			skeletonOutlineColor = { COLOR3_BLACK, 1 },
 			name = true,
 			nameColor = { COLOR3_WHITE, 1 },
 			nameOutline = true,
@@ -799,6 +912,10 @@ local EspInterface = {
 			healthTextOutlineColor = COLOR3_BLACK,
 			box3d = false,
 			box3dColor = { Color3.new(0,1,0), 1 },
+			skeleton = false,
+			skeletonColor = { COLOR3_WHITE, 1 },
+			skeletonOutline = true,
+			skeletonOutlineColor = { COLOR3_BLACK, 1 },
 			name = false,
 			nameColor = { COLOR3_WHITE, 1 },
 			nameOutline = true,
@@ -830,11 +947,16 @@ local EspInterface = {
 	}
 }
 
--- Update viewport on camera changes
+-- Update viewport on camera changes (optimized)
+local lastViewportUpdate = 0
 RunService.Heartbeat:Connect(function()
-	if camera then
-		viewportSize = camera.ViewportSize
-		viewportCenter = viewportSize * 0.5
+	local tick = os.clock()
+	if tick - lastViewportUpdate > 0.1 then -- Update viewport every 100ms
+		lastViewportUpdate = tick
+		if camera then
+			viewportSize = camera.ViewportSize
+			viewportCenter = viewportSize * 0.5
+		end
 	end
 end)
 
@@ -848,8 +970,21 @@ function EspInterface.AddInstance(instance, options)
 	return cache[instance][1]
 end
 
+function EspInterface.RemoveInstance(instance)
+	local cache = EspInterface._objectCache
+	local object = cache[instance]
+	if object then
+		for i = 1, #object do
+			if object[i] and object[i].Destruct then
+				pcall(function() object[i]:Destruct() end)
+			end
+		end
+		cache[instance] = nil
+	end
+end
+
 function EspInterface.Load()
-	assert(not EspInterface._hasLoaded, "Esp has already been loaded.")
+	assert(not EspInterface._hasLoaded, "ESP has already been loaded.")
 
 	local function createObject(player)
 		if player == localPlayer then return end
@@ -879,10 +1014,12 @@ function EspInterface.Load()
 	EspInterface.playerAdded = Players.PlayerAdded:Connect(createObject)
 	EspInterface.playerRemoving = Players.PlayerRemoving:Connect(removeObject)
 	EspInterface._hasLoaded = true
+	
+	print("[ESP Framework v2.0] Loaded successfully!")
 end
 
 function EspInterface.Unload()
-	assert(EspInterface._hasLoaded, "Esp has not been loaded yet.")
+	assert(EspInterface._hasLoaded, "ESP has not been loaded yet.")
 
 	for index, object in next, EspInterface._objectCache do
 		for i = 1, #object do
@@ -896,6 +1033,35 @@ function EspInterface.Unload()
 	if EspInterface.playerAdded then EspInterface.playerAdded:Disconnect() EspInterface.playerAdded = nil end
 	if EspInterface.playerRemoving then EspInterface.playerRemoving:Disconnect() EspInterface.playerRemoving = nil end
 	EspInterface._hasLoaded = false
+	
+	if container then
+		container:ClearAllChildren()
+	end
+	
+	print("[ESP Framework v2.0] Unloaded successfully!")
+end
+
+-- Utility functions
+function EspInterface.SetTeamCheck(enabled)
+	-- This is handled by the enabled flags in teamSettings
+	print("[ESP Framework] Team check is controlled via teamSettings.friendly.enabled and teamSettings.enemy.enabled")
+end
+
+function EspInterface.GetPlayers()
+	return EspInterface._objectCache
+end
+
+function EspInterface.RefreshAll()
+	-- Force refresh all ESP objects
+	for player, objects in pairs(EspInterface._objectCache) do
+		if player:IsA("Player") then
+			for i = 1, #objects do
+				if objects[i].Update then
+					objects[i]:Update()
+				end
+			end
+		end
+	end
 end
 
 return EspInterface
