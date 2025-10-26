@@ -495,7 +495,7 @@ function EspObject:Render()
 		distance.Text = round(self.distance) .. " studs"
 		distance.Color = parseColor(self, options.distanceColor[1])
 		distance.Transparency = options.distanceColor[2]
-		distance.OutlineColor = parseColor(self, options.distanceOutlineColor, true)
+		-- distance.OutlineColor = parseColor(self, options.distanceOutlineColor, true)
 		distance.Position = (corners.bottomLeft + corners.bottomRight) * 0.5 + DISTANCE_OFFSET
 	end
 
