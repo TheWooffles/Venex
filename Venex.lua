@@ -35,7 +35,7 @@ local Mouse               = LocalPlayer:GetMouse()
 local Camera              = workspace.CurrentCamera
 
 local syde         = Load("https://raw.githubusercontent.com/TheWooffles/syde/main/source",true)
-local VenexEsp     = Load('https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexESP/Venex.lua')
+-- local VenexEsp     = Load('https://raw.githubusercontent.com/TheWooffles/Venex/main/Libraries/VenexESP/Venex.lua')
 
 local Config = {
     CFrameSpeed = {
@@ -49,6 +49,7 @@ local Config = {
         WallCheck = true,
         HitChance = 100,
         AutoShoot = true,
+        UsePrediction = false,
     },
     World = {
         Fullbright = false,
@@ -107,7 +108,8 @@ _G.AimLock = _G.AimLock or {
     FOVEnabled = false,
     TargetPlayer = nil,
     Smoothness = 0.2,
-    PredictionStrength = 0,
+    PredictionStrength = 0.13,
+    AutoPrediction = false,
     FOVSize = 100,
     FOVColor = Color3.fromRGB(255, 255, 255),
     FOVTransparency = 0.5,
@@ -192,6 +194,16 @@ local function isPlayerAlive(player)
     return humanoid and humanoid.Health > 0
 end
 
+-- Improved Prediction Function
+local function predictPosition(pos, vel, dist)
+    if _G.AimLock.AutoPrediction and dist then
+        return pos + (vel * (dist / 500))
+    elseif _G.AimLock.PredictionStrength and _G.AimLock.PredictionStrength > 0 then
+        return pos + (vel * _G.AimLock.PredictionStrength)
+    end
+    return pos
+end
+
 -- Trigger Bot Functions
 local triggerBotActive = false
 local lastShootTime = 0
@@ -217,6 +229,29 @@ local function isPlayerInCrosshair()
 
                 if Config.TriggerBot.TeamCheck and targetPlayer.Team == LocalPlayer.Team then
                     return false, nil
+                end
+
+                -- If prediction is enabled for trigger bot, check predicted position
+                if Config.TriggerBot.UsePrediction then
+                    local hrp = targetChar:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        local velocity = hrp.Velocity or hrp.AssemblyLinearVelocity or Vector3.new(0, 0, 0)
+                        local distance = (hrp.Position - Camera.CFrame.Position).Magnitude
+                        local predictedPos = predictPosition(hrp.Position, velocity, distance)
+                        
+                        -- Check if crosshair is aiming at predicted position
+                        local screenPos, onScreen = Camera:WorldToScreenPoint(predictedPos)
+                        if onScreen then
+                            local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+                            local targetScreenPos = Vector2.new(screenPos.X, screenPos.Y)
+                            local distFromCrosshair = (mousePos - targetScreenPos).Magnitude
+                            
+                            -- Allow a small tolerance (20 pixels)
+                            if distFromCrosshair > 20 then
+                                return false, nil
+                            end
+                        end
+                    end
                 end
 
                 if Config.TriggerBot.WallCheck then
@@ -392,6 +427,31 @@ Combat:Toggle({
 	end,
 	Flag = 'AimLockFOVFilled'
 })
+
+Combat:Section('Prediction Settings')
+Combat:Toggle({
+	Title = 'Auto Prediction',
+	Value = false,
+	Config = true,
+	CallBack = function(v)
+		_G.AimLock.AutoPrediction = v
+		if v then
+			syde:Notify({
+				Title = 'Auto Prediction',
+				Content = 'Enabled - Distance-based prediction active',
+				Duration = 2
+			})
+		else
+			syde:Notify({
+				Title = 'Auto Prediction',
+				Content = 'Disabled - Using manual prediction',
+				Duration = 2
+			})
+		end
+	end,
+	Flag = 'AimLockAutoPrediction'
+})
+
 Combat:CreateSlider({
 	Title = 'Aim Lock Options',
 	Description = '',
@@ -407,10 +467,10 @@ Combat:CreateSlider({
 			Flag = 'AimLockFOVSize'
 		},
 		{
-			Title = 'Prediction',
-			Range = {0, 10},
-			Increment = 0.1,
-			StarterValue = 0,
+			Title = 'Manual Prediction',
+			Range = {0, 1},
+			Increment = 0.001,
+			StarterValue = 0.13,
 			CallBack = function(v)
 				_G.AimLock.PredictionStrength = v
 			end,
@@ -496,6 +556,28 @@ Combat:Toggle({
 	end,
 	Flag = 'TriggerBotAutoShoot'
 })
+Combat:Toggle({
+	Title = 'Use Prediction',
+	Value = false,
+	Config = true,
+	CallBack = function(v)
+		Config.TriggerBot.UsePrediction = v
+		if v then
+			syde:Notify({
+				Title = 'Trigger Bot Prediction',
+				Content = 'Enabled - Using Aim Lock prediction settings',
+				Duration = 2
+			})
+		else
+			syde:Notify({
+				Title = 'Trigger Bot Prediction',
+				Content = 'Disabled',
+				Duration = 1.5
+			})
+		end
+	end,
+	Flag = 'TriggerBotUsePrediction'
+})
 Combat:CreateSlider({
 	Title = 'Trigger Bot Options',
 	Description = '',
@@ -532,52 +614,52 @@ Combat:Keybind({
 	end,
 })
 
-Visuals:Section('Enemy Esp')
-Visuals:Toggle({
-	Title = 'Enabled',
-	Value = false,
-	Config = true,
-	CallBack = function(v)
-		VenexEsp.enabled = v
-	end,
-	Flag = 'EspEnabled'
-})
-Visuals:Toggle({
-	Title = 'Enemy Box',
-	Value = false,
-	Config = true,
-	CallBack = function(v)
-		VenexEsp.teamSettings.enemy.box = v
-	end,
-	Flag = 'EspEnemyBox'
-})
-Visuals:Toggle({
-	Title = 'Enemy Name',
-	Value = false,
-	Config = true,
-	CallBack = function(v)
-		VenexEsp.teamSettings.enemy.name = v
-	end,
-	Flag = 'EspEnemyName'
-})
-Visuals:Toggle({
-	Title = 'Enemy Health Bar',
-	Value = false,
-	Config = true,
-	CallBack = function(v)
-		VenexEsp.teamSettings.enemy.healthBar = v
-	end,
-	Flag = 'EspEnemyHealthBar'
-})
-Visuals:ColorPicker({
-	Title = 'Box Color',
-	Linkable = false,
-	Color = Color3.fromRGB(255,255,255);
-	CallBack = function(v)
-		VenexEsp.teamSettings.enemy.boxColor[1] = v
-	end,
-	Flag = 'EspEnemyBoxColor'
-})
+-- Visuals:Section('Enemy Esp')
+-- Visuals:Toggle({
+-- 	Title = 'Enabled',
+-- 	Value = false,
+-- 	Config = true,
+-- 	CallBack = function(v)
+-- 		VenexEsp.enabled = v
+-- 	end,
+-- 	Flag = 'EspEnabled'
+-- })
+-- Visuals:Toggle({
+-- 	Title = 'Enemy Box',
+-- 	Value = false,
+-- 	Config = true,
+-- 	CallBack = function(v)
+-- 		VenexEsp.teamSettings.enemy.box = v
+-- 	end,
+-- 	Flag = 'EspEnemyBox'
+-- })
+-- Visuals:Toggle({
+-- 	Title = 'Enemy Name',
+-- 	Value = false,
+-- 	Config = true,
+-- 	CallBack = function(v)
+-- 		VenexEsp.teamSettings.enemy.name = v
+-- 	end,
+-- 	Flag = 'EspEnemyName'
+-- })
+-- Visuals:Toggle({
+-- 	Title = 'Enemy Health Bar',
+-- 	Value = false,
+-- 	Config = true,
+-- 	CallBack = function(v)
+-- 		VenexEsp.teamSettings.enemy.healthBar = v
+-- 	end,
+-- 	Flag = 'EspEnemyHealthBar'
+-- })
+-- Visuals:ColorPicker({
+-- 	Title = 'Box Color',
+-- 	Linkable = false,
+-- 	Color = Color3.fromRGB(255,255,255);
+-- 	CallBack = function(v)
+-- 		VenexEsp.teamSettings.enemy.boxColor[1] = v
+-- 	end,
+-- 	Flag = 'EspEnemyBoxColor'
+-- })
 
 Player:Section('Movement')
 local CFrameSpeedToggle = Player:Toggle({
@@ -752,14 +834,21 @@ connections.RenderStepped = RunService.RenderStepped:Connect(function()
             
             local head = targetPlayer.Character.Head
             local headPos = head.Position
+            local velocity = Vector3.new(0, 0, 0)
             
+            -- Get velocity from HumanoidRootPart
             if targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
                 local hrp = targetPlayer.Character.HumanoidRootPart
-                local velocity = hrp.Velocity or hrp.AssemblyLinearVelocity or Vector3.new(0, 0, 0)
-                headPos = headPos + (velocity * _G.AimLock.PredictionStrength)
+                velocity = hrp.Velocity or hrp.AssemblyLinearVelocity or Vector3.new(0, 0, 0)
             end
             
-            local screenPos, onScreen = Camera:WorldToScreenPoint(headPos)
+            -- Calculate distance for auto-prediction
+            local distance = (headPos - Camera.CFrame.Position).Magnitude
+            
+            -- Apply improved prediction
+            local predictedPos = predictPosition(headPos, velocity, distance)
+            
+            local screenPos, onScreen = Camera:WorldToScreenPoint(predictedPos)
 
 			if onScreen then
                 local mousePos = Vector2.new(Mouse.X, Mouse.Y)
@@ -771,21 +860,6 @@ connections.RenderStepped = RunService.RenderStepped:Connect(function()
                 
                 mousemoverel(delta.X, delta.Y)
             end
-            
-            -- if onScreen then
-            --     local mousePos = Vector2.new(Mouse.X, Mouse.Y)
-            --     local targetPos = Vector2.new(screenPos.X, screenPos.Y)
-            --     local delta = targetPos - mousePos
-                
-            --     local smoothDelta
-            --     if _G.AimLock.Smoothness >= 1 then
-            --         smoothDelta = delta
-            --     else
-            --         smoothDelta = delta * _G.AimLock.Smoothness
-            --     end
-                
-            --     mousemoverel(smoothDelta.X, smoothDelta.Y)
-            -- end
         else
             targetPlayer = nil
             _G.AimLock.TargetPlayer = nil
@@ -806,14 +880,10 @@ _G.UnloadVantage = function()
     for _, connection in pairs(connections) do
         connection:Disconnect()
     end
-    for _, connection in pairs(textureConnections) do
-        connection:Disconnect()
-    end
     if FOVCircle then
         FOVCircle:Remove()
     end
     connections = {}
-    textureConnections = {}
     targetPlayer = nil
     triggerBotActive = false
     _G.AimLock.Enabled = false
@@ -822,7 +892,6 @@ _G.UnloadVantage = function()
     
     ApplyFullbright(false)
     ApplyNoShadows(false)
-    ApplyNoTextures(false)
     
     print("Vantage Internal unloaded")
 end
@@ -841,7 +910,7 @@ local MainLoop = RunService.RenderStepped:Connect(function(dt)
     end
 end)
 
-VenexEsp.Load()
+-- VenexEsp.Load()
 _G.VantageExecuted = true
 syde:Notify({
     Title = 'Vantage Internal',
