@@ -140,11 +140,11 @@ end
 
 CreateFOVCircle()
 
--- Update FOV Circle Position
+-- Update FOV Circle Position (FIXED - Now follows mouse)
 local function UpdateFOVCircle()
     if FOVCircle and _G.AimLock.FOVEnabled then
-        local screenSize = Camera.ViewportSize
-        FOVCircle.Position = Vector2.new(screenSize.X / 2, screenSize.Y / 2)
+        -- Position circle at mouse cursor instead of screen center
+        FOVCircle.Position = Vector2.new(Mouse.X, Mouse.Y)
         FOVCircle.Radius = _G.AimLock.FOVSize
         FOVCircle.Color = _G.AimLock.FOVColor
         FOVCircle.Transparency = _G.AimLock.FOVTransparency
@@ -261,10 +261,19 @@ local function isPlayerInCrosshair()
                     return false, nil
                 end
                 
-                -- Wall check
+                -- Wall check - FIXED: Exclude all player characters
                 if Config.TriggerBot.WallCheck then
                     local directRayParams = RaycastParams.new()
-                    directRayParams.FilterDescendantsInstances = {LocalPlayer.Character, targetChar}
+                    local filterList = {LocalPlayer.Character, targetChar}
+                    
+                    -- Add all player characters to filter list
+                    for _, player in pairs(Players:GetPlayers()) do
+                        if player.Character then
+                            table.insert(filterList, player.Character)
+                        end
+                    end
+                    
+                    directRayParams.FilterDescendantsInstances = filterList
                     directRayParams.FilterType = Enum.RaycastFilterType.Exclude
                     
                     local origin = Camera.CFrame.Position
@@ -316,7 +325,7 @@ local function TriggerShoot()
     end)
 end
 
--- Check if target is visible
+-- Check if target is visible - FIXED: Exclude all player characters
 local function isTargetVisible(targetHead, targetCharacter)
     if not _G.AimLock.WallCheck then
         return true
@@ -330,7 +339,16 @@ local function isTargetVisible(targetHead, targetCharacter)
     local direction = (targetHead.Position - origin).Unit * (targetHead.Position - origin).Magnitude
     
     local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, targetCharacter}
+    local filterList = {LocalPlayer.Character, targetCharacter}
+    
+    -- Add all player characters to filter list
+    for _, player in pairs(Players:GetPlayers()) do
+        if player.Character then
+            table.insert(filterList, player.Character)
+        end
+    end
+    
+    raycastParams.FilterDescendantsInstances = filterList
     raycastParams.FilterType = Enum.RaycastFilterType.Exclude
     
     local rayResult = workspace:Raycast(origin, direction, raycastParams)
@@ -338,11 +356,11 @@ local function isTargetVisible(targetHead, targetCharacter)
     return rayResult == nil
 end
 
--- Get closest player within FOV
+-- Get closest player within FOV (FIXED - Now checks distance from mouse)
 local function getClosestPlayerInFOV()
     local closestPlayer = nil
     local shortestDistance = math.huge
-    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    local mousePos = Vector2.new(Mouse.X, Mouse.Y)  -- Use mouse position instead of screen center
     
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and isPlayerAlive(player) and player.Character:FindFirstChild("Head") then
@@ -357,13 +375,13 @@ local function getClosestPlayerInFOV()
             
             if onScreen then
                 local screenPosVec = Vector2.new(screenPos.X, screenPos.Y)
-                local distanceFromCenter = (screenCenter - screenPosVec).Magnitude
+                local distanceFromMouse = (mousePos - screenPosVec).Magnitude  -- Distance from mouse, not center
                 
                 -- Check if within FOV circle
-                if distanceFromCenter <= _G.AimLock.FOVSize then
+                if distanceFromMouse <= _G.AimLock.FOVSize then
                     if isTargetVisible(head, player.Character) then
-                        if distanceFromCenter < shortestDistance then
-                            shortestDistance = distanceFromCenter
+                        if distanceFromMouse < shortestDistance then
+                            shortestDistance = distanceFromMouse
                             closestPlayer = player
                         end
                     end
