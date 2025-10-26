@@ -104,18 +104,56 @@ local Misc    = Window:InitTab({ Title = 'Misc' })
 
 _G.AimLock = _G.AimLock or {
     Enabled = false,
+    FOVEnabled = false,
     TargetPlayer = nil,
     Smoothness = 0.2,
     PredictionStrength = 0,
-    MaxDistance = 500,
+    FOVSize = 100,
+    FOVColor = Color3.fromRGB(255, 255, 255),
+    FOVTransparency = 0.5,
+    FOVFilled = false,
     WallCheck = true,
     TeamCheck = true,
     Keybind = Enum.KeyCode.Q,
 }
 
-local isLocking = false
 local targetPlayer = nil
 local connections = {}
+local FOVCircle = nil
+
+-- Create FOV Circle
+local function CreateFOVCircle()
+    if FOVCircle then
+        FOVCircle:Remove()
+    end
+    
+    FOVCircle = Drawing.new("Circle")
+    FOVCircle.Thickness = 2
+    FOVCircle.NumSides = 64
+    FOVCircle.Radius = _G.AimLock.FOVSize
+    FOVCircle.Color = _G.AimLock.FOVColor
+    FOVCircle.Transparency = _G.AimLock.FOVTransparency
+    FOVCircle.Filled = _G.AimLock.FOVFilled
+    FOVCircle.Visible = false
+    FOVCircle.ZIndex = 1000
+end
+
+CreateFOVCircle()
+
+-- Update FOV Circle Position
+local function UpdateFOVCircle()
+    if FOVCircle and _G.AimLock.FOVEnabled then
+        local screenSize = Camera.ViewportSize
+        FOVCircle.Position = Vector2.new(screenSize.X / 2, screenSize.Y / 2)
+        FOVCircle.Radius = _G.AimLock.FOVSize
+        FOVCircle.Color = _G.AimLock.FOVColor
+        FOVCircle.Transparency = _G.AimLock.FOVTransparency
+        FOVCircle.Filled = _G.AimLock.FOVFilled
+        FOVCircle.Visible = _G.AimLock.Enabled
+    else
+        FOVCircle.Visible = false
+    end
+end
 
 -- Store original lighting settings
 local function SaveOriginalLighting()
@@ -278,20 +316,93 @@ local function TriggerShoot()
     end)
 end
 
+-- Check if target is visible
+local function isTargetVisible(targetHead, targetCharacter)
+    if not _G.AimLock.WallCheck then
+        return true
+    end
+    
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("Head") then
+        return false
+    end
+    
+    local origin = Camera.CFrame.Position
+    local direction = (targetHead.Position - origin).Unit * (targetHead.Position - origin).Magnitude
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, targetCharacter}
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    
+    local rayResult = workspace:Raycast(origin, direction, raycastParams)
+    
+    return rayResult == nil
+end
+
+-- Get closest player within FOV
+local function getClosestPlayerInFOV()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and isPlayerAlive(player) and player.Character:FindFirstChild("Head") then
+            if _G.AimLock.TeamCheck and player.Team == LocalPlayer.Team then
+                continue
+            end
+            
+            local head = player.Character.Head
+            local headPos = head.Position
+            
+            local screenPos, onScreen = Camera:WorldToScreenPoint(headPos)
+            
+            if onScreen then
+                local screenPosVec = Vector2.new(screenPos.X, screenPos.Y)
+                local distanceFromCenter = (screenCenter - screenPosVec).Magnitude
+                
+                -- Check if within FOV circle
+                if distanceFromCenter <= _G.AimLock.FOVSize then
+                    if isTargetVisible(head, player.Character) then
+                        if distanceFromCenter < shortestDistance then
+                            shortestDistance = distanceFromCenter
+                            closestPlayer = player
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    return closestPlayer
+end
+
 Combat:Section('Aim Lock')
-Combat:Toggle({
+local AimLockToggle = Combat:Toggle({
 	Title = 'Aim Lock Enabled',
 	Value = false,
 	Config = true,
 	CallBack = function(v)
+		_G.AimLock.Enabled = v
 		if not v then
-			isLocking = false
 			targetPlayer = nil
-			_G.AimLock.Enabled = false
 			_G.AimLock.TargetPlayer = nil
+		else
+			syde:Notify({
+				Title = 'Aim Lock',
+				Content = 'FOV Circle Enabled - Press Q to toggle visibility',
+				Duration = 2
+			})
 		end
 	end,
-	Flag = 'AimLockManualToggle'
+	Flag = 'AimLockEnabled'
+})
+Combat:Toggle({
+	Title = 'Show FOV Circle',
+	Value = true,
+	Config = true,
+	CallBack = function(v)
+		_G.AimLock.FOVEnabled = v
+	end,
+	Flag = 'AimLockFOVEnabled'
 })
 Combat:Toggle({
 	Title = 'Team Check',
@@ -311,10 +422,29 @@ Combat:Toggle({
 	end,
 	Flag = 'AimLockWallCheck'
 })
+Combat:Toggle({
+	Title = 'FOV Filled',
+	Value = false,
+	Config = true,
+	CallBack = function(v)
+		_G.AimLock.FOVFilled = v
+	end,
+	Flag = 'AimLockFOVFilled'
+})
 Combat:CreateSlider({
 	Title = 'Aim Lock Options',
 	Description = '',
 	Sliders = {
+		{
+			Title = 'FOV Size',
+			Range = {20, 400},
+			Increment = 5,
+			StarterValue = 100,
+			CallBack = function(v)
+				_G.AimLock.FOVSize = v
+			end,
+			Flag = 'AimLockFOVSize'
+		},
 		{
 			Title = 'Prediction',
 			Range = {0, 10},
@@ -335,20 +465,19 @@ Combat:CreateSlider({
 			end,
 			Flag = 'AimLockSmoothness'
 		},
-        {
-			Title = 'Max Distance',
-			Range = {0, 700},
-			Increment = 10,
-			StarterValue = 500,
-			CallBack = function(v)
-				_G.AimLock.MaxDistance = v
-			end,
-			Flag = 'AimLockMaxDistance'
-		},
 	}
 })
+Combat:ColorPicker({
+	Title = 'FOV Color',
+	Linkable = false,
+	Color = Color3.fromRGB(255, 255, 255);
+	CallBack = function(v)
+		_G.AimLock.FOVColor = v
+	end,
+	Flag = 'AimLockFOVColor'
+})
 Combat:Keybind({
-	Title = 'Aim Lock Keybind',
+	Title = 'Toggle FOV Visibility',
 	Key = Enum.KeyCode.Q;
 	CallBack = function(key)
 		_G.AimLock.Keybind = key
@@ -649,158 +778,68 @@ Misc:Button({
 	end,
 })
 
-local function isTargetVisible(targetHead)
-    if not _G.AimLock.WallCheck then
-        return true
-    end
-    
-    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("Head") then
-        return false
-    end
-    
-    local origin = Camera.CFrame.Position
-    local direction = (targetHead.Position - origin).Unit * (targetHead.Position - origin).Magnitude
-    
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character, targetPlayer and targetPlayer.Character or nil}
-    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-    
-    local rayResult = workspace:Raycast(origin, direction, raycastParams)
-    
-    return rayResult == nil
-end
-
-local function getClosestPlayer()
-    local closestPlayer = nil
-    local shortestDistance = math.huge
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and isPlayerAlive(player) and player.Character:FindFirstChild("Head") then
-            if _G.AimLock.TeamCheck and player.Team == LocalPlayer.Team then
-                continue
-            end
-            
-            local head = player.Character.Head
-            local headPos = head.Position
-            local distance = (LocalPlayer.Character.Head.Position - headPos).Magnitude
-            
-            if distance <= _G.AimLock.MaxDistance then
-                local screenPos, onScreen = Camera:WorldToScreenPoint(headPos)
-                
-                if onScreen then
-                    local mousePos = Vector2.new(Mouse.X, Mouse.Y)
-                    local screenDistance = (mousePos - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
-                    
-                    if screenDistance < shortestDistance then
-                        shortestDistance = screenDistance
-                        closestPlayer = player
-                    end
-                end
-            end
-        end
-    end
-    
-    return closestPlayer
-end
-
+-- FOV Visibility Toggle
 connections.InputBegan = UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.KeyCode == _G.AimLock.Keybind and not gameProcessed then
-        isLocking = not isLocking
-        
-        if isLocking then
-            targetPlayer = getClosestPlayer()
-            if targetPlayer then
-                _G.AimLock.Enabled = true
-                _G.AimLock.TargetPlayer = targetPlayer
-                syde:Notify({
-                    Title = 'Aim Lock',
-                    Content = "Locked to " .. targetPlayer.Name,
-                    Duration = 2
-                })
-            else
-                syde:Notify({
-                    Title = 'Aim Lock',
-                    Content = 'No valid targets found',
-                    Duration = 2
-                })
-                isLocking = false
-                _G.AimLock.Enabled = false
-                _G.AimLock.TargetPlayer = nil
-            end
-        else
-            syde:Notify({
-                Title = 'Aim Lock',
-                Content = 'Disabled',
-                Duration = 1.5
-            })
-            _G.AimLock.Enabled = false
-            targetPlayer = nil
-            _G.AimLock.TargetPlayer = nil
-        end
+        _G.AimLock.FOVEnabled = not _G.AimLock.FOVEnabled
+        local status = _G.AimLock.FOVEnabled and 'Visible' or 'Hidden'
+        syde:Notify({
+            Title = 'FOV Circle',
+            Content = status,
+            Duration = 1
+        })
     end
 end)
 
+-- Main Aim Lock Loop
 connections.RenderStepped = RunService.RenderStepped:Connect(function()
+    -- Update FOV Circle
+    UpdateFOVCircle()
+    
     -- Check if local player is alive
     if not isPlayerAlive(LocalPlayer) then
-        if isLocking then
-            isLocking = false
-            targetPlayer = nil
-            _G.AimLock.Enabled = false
-            _G.AimLock.TargetPlayer = nil
-        end
+        targetPlayer = nil
+        _G.AimLock.TargetPlayer = nil
         return
     end
     
-    if isLocking and targetPlayer then
-        -- Check if target is still alive
-        if not isPlayerAlive(targetPlayer) or not targetPlayer.Character:FindFirstChild("Head") then
-            isLocking = false
-            targetPlayer = nil
-            _G.AimLock.Enabled = false
-            _G.AimLock.TargetPlayer = nil
-            syde:Notify({
-                Title = 'Aim Lock',
-                Content = 'Target eliminated',
-                Duration = 1.5
-            })
-            return
-        end
+    if _G.AimLock.Enabled then
+        -- Find closest player in FOV
+        local newTarget = getClosestPlayerInFOV()
         
-        local head = targetPlayer.Character.Head
-        local headPos = head.Position
-        
-        if targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = targetPlayer.Character.HumanoidRootPart
-            local velocity = hrp.Velocity or hrp.AssemblyLinearVelocity or Vector3.new(0, 0, 0)
-            headPos = headPos + (velocity * _G.AimLock.PredictionStrength)
-        end
-        
-        local screenPos, onScreen = Camera:WorldToScreenPoint(headPos)
-        
-        if onScreen and isTargetVisible(head) then
-            local mousePos = Vector2.new(Mouse.X, Mouse.Y)
-            local targetPos = Vector2.new(screenPos.X, screenPos.Y)
-            local delta = targetPos - mousePos
+        if newTarget then
+            targetPlayer = newTarget
+            _G.AimLock.TargetPlayer = newTarget
             
-            local smoothDelta
-            if _G.AimLock.Smoothness >= 1 then
-                smoothDelta = delta
-            else
-                smoothDelta = delta * _G.AimLock.Smoothness
+            local head = targetPlayer.Character.Head
+            local headPos = head.Position
+            
+            -- Apply prediction
+            if targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = targetPlayer.Character.HumanoidRootPart
+                local velocity = hrp.Velocity or hrp.AssemblyLinearVelocity or Vector3.new(0, 0, 0)
+                headPos = headPos + (velocity * _G.AimLock.PredictionStrength)
             end
             
-            mousemoverel(smoothDelta.X, smoothDelta.Y)
-        elseif not onScreen then
-            isLocking = false
+            local screenPos, onScreen = Camera:WorldToScreenPoint(headPos)
+            
+            if onScreen then
+                local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+                local targetPos = Vector2.new(screenPos.X, screenPos.Y)
+                local delta = targetPos - mousePos
+                
+                local smoothDelta
+                if _G.AimLock.Smoothness >= 1 then
+                    smoothDelta = delta
+                else
+                    smoothDelta = delta * _G.AimLock.Smoothness
+                end
+                
+                mousemoverel(smoothDelta.X, smoothDelta.Y)
+            end
+        else
             targetPlayer = nil
-            _G.AimLock.Enabled = false
             _G.AimLock.TargetPlayer = nil
-            syde:Notify({
-                Title = 'Aim Lock',
-                Content = 'Target lost',
-                Duration = 1.5
-            })
         end
     end
 end)
@@ -822,9 +861,11 @@ _G.UnloadVantage = function()
     for _, connection in pairs(textureConnections) do
         connection:Disconnect()
     end
+    if FOVCircle then
+        FOVCircle:Remove()
+    end
     connections = {}
     textureConnections = {}
-    isLocking = false
     targetPlayer = nil
     triggerBotActive = false
     _G.AimLock.Enabled = false
@@ -853,7 +894,7 @@ local MainLoop = RunService.RenderStepped:Connect(function(dt)
     end
 end)
 
-VenexEsp:Load()
+VenexEsp.Load()
 _G.VantageExecuted = true
 syde:Notify({
     Title = 'Vantage Internal',

@@ -6,7 +6,9 @@ local Workspace = game:GetService("Workspace")
 -- variables
 local localPlayer = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
-local container = Instance.new("Folder", (gethui and gethui() or game:GetService("CoreGui")))
+local container = Instance.new("Folder")
+container.Name = "ESPContainer"
+container.Parent = (gethui and gethui() or game:GetService("CoreGui"))
 
 -- cache commonly used values
 local VECTOR2_ZERO = Vector2.new(0, 0)
@@ -241,6 +243,7 @@ end
 
 function EspObject:_create(class, properties)
 	local drawing = Drawing.new(class)
+	drawing.ZIndex = 0  -- Set display order to 0
 	for property, value in next, properties do
 		pcall(function() drawing[property] = value end)
 	end
@@ -255,42 +258,42 @@ function EspObject:Construct()
 	self.drawings = {
 		box3d = {
 			{
-				self:_create("Line", { Thickness = 1, Visible = false }),
-				self:_create("Line", { Thickness = 1, Visible = false }),
-				self:_create("Line", { Thickness = 1, Visible = false })
+				self:_create("Line", { Thickness = 1, Visible = false, ZIndex = 0 }),
+				self:_create("Line", { Thickness = 1, Visible = false, ZIndex = 0 }),
+				self:_create("Line", { Thickness = 1, Visible = false, ZIndex = 0 })
 			},
 			{
-				self:_create("Line", { Thickness = 1, Visible = false }),
-				self:_create("Line", { Thickness = 1, Visible = false }),
-				self:_create("Line", { Thickness = 1, Visible = false })
+				self:_create("Line", { Thickness = 1, Visible = false, ZIndex = 0 }),
+				self:_create("Line", { Thickness = 1, Visible = false, ZIndex = 0 }),
+				self:_create("Line", { Thickness = 1, Visible = false, ZIndex = 0 })
 			},
 			{
-				self:_create("Line", { Thickness = 1, Visible = false }),
-				self:_create("Line", { Thickness = 1, Visible = false }),
-				self:_create("Line", { Thickness = 1, Visible = false })
+				self:_create("Line", { Thickness = 1, Visible = false, ZIndex = 0 }),
+				self:_create("Line", { Thickness = 1, Visible = false, ZIndex = 0 }),
+				self:_create("Line", { Thickness = 1, Visible = false, ZIndex = 0 })
 			},
 			{
-				self:_create("Line", { Thickness = 1, Visible = false }),
-				self:_create("Line", { Thickness = 1, Visible = false }),
-				self:_create("Line", { Thickness = 1, Visible = false })
+				self:_create("Line", { Thickness = 1, Visible = false, ZIndex = 0 }),
+				self:_create("Line", { Thickness = 1, Visible = false, ZIndex = 0 }),
+				self:_create("Line", { Thickness = 1, Visible = false, ZIndex = 0 })
 			}
 		},
 		visible = {
-			tracerOutline = self:_create("Line", { Thickness = 3, Visible = false }),
-			tracer = self:_create("Line", { Thickness = 1, Visible = false }),
-			boxFill = self:_create("Square", { Filled = true, Visible = false }),
-			boxOutline = self:_create("Square", { Thickness = 3, Visible = false }),
-			box = self:_create("Square", { Thickness = 1, Visible = false }),
-			healthBarOutline = self:_create("Line", { Thickness = 3, Visible = false }),
-			healthBar = self:_create("Line", { Thickness = 1, Visible = false }),
-			healthText = self:_create("Text", { Center = true, Visible = false }),
-			name = self:_create("Text", { Text = self.player.DisplayName or self.player.Name, Center = true, Visible = false }),
-			distance = self:_create("Text", { Center = true, Visible = false }),
-			weapon = self:_create("Text", { Center = true, Visible = false })
+			tracerOutline = self:_create("Line", { Thickness = 3, Visible = false, ZIndex = 0 }),
+			tracer = self:_create("Line", { Thickness = 1, Visible = false, ZIndex = 0 }),
+			boxFill = self:_create("Square", { Filled = true, Visible = false, ZIndex = 0 }),
+			boxOutline = self:_create("Square", { Thickness = 3, Visible = false, ZIndex = 0 }),
+			box = self:_create("Square", { Thickness = 1, Visible = false, ZIndex = 0 }),
+			healthBarOutline = self:_create("Line", { Thickness = 3, Visible = false, ZIndex = 0 }),
+			healthBar = self:_create("Line", { Thickness = 1, Visible = false, ZIndex = 0 }),
+			healthText = self:_create("Text", { Center = true, Visible = false, ZIndex = 0 }),
+			name = self:_create("Text", { Text = self.player.DisplayName or self.player.Name, Center = true, Visible = false, ZIndex = 0 }),
+			distance = self:_create("Text", { Center = true, Visible = false, ZIndex = 0 }),
+			weapon = self:_create("Text", { Center = true, Visible = false, ZIndex = 0 })
 		},
 		hidden = {
-			arrowOutline = self:_create("Triangle", { Thickness = 3, Visible = false }),
-			arrow = self:_create("Triangle", { Filled = true, Visible = false })
+			arrowOutline = self:_create("Triangle", { Thickness = 3, Visible = false, ZIndex = 0 }),
+			arrow = self:_create("Triangle", { Filled = true, Visible = false, ZIndex = 0 })
 		}
 	}
 
@@ -570,8 +573,8 @@ function EspObject:Render()
 		for fi = 1, 4 do
 			local face = box3d[fi]
 			local nextIndex = fi == 4 and 1 or fi + 1
-			local farIndex = fi == 4 and 5 or fi + 5
-			local farNextIndex = fi == 4 and 8 or fi + 4
+			local farIndex = fi + 4
+			local farNextIndex = fi == 4 and 5 or fi + 5
 			
 			for i = 1, 3 do
 				local line = face[i]
@@ -583,9 +586,9 @@ function EspObject:Render()
 			face[1].From = cornersTable[fi]
 			face[1].To = cornersTable[nextIndex]
 			face[2].From = cornersTable[nextIndex]
-			face[2].To = cornersTable[farIndex]
-			face[3].From = cornersTable[farIndex]
-			face[3].To = cornersTable[farNextIndex]
+			face[2].To = cornersTable[farNextIndex]
+			face[3].From = cornersTable[farNextIndex]
+			face[3].To = cornersTable[farIndex]
 		end
 	else
 		for fi = 1, 4 do
@@ -681,6 +684,7 @@ function InstanceObject:Construct()
 
 	self.text = Drawing.new("Text")
 	self.text.Center = true
+	self.text.ZIndex = 0
 
 	self.renderConnection = RunService.Heartbeat:Connect(function(deltaTime)
 		self:Render(deltaTime)
@@ -748,14 +752,14 @@ local EspInterface = {
 	},
 	teamSettings = {
 		enemy = {
-			enabled = false,
-			box = false,
+			enabled = true,
+			box = true,
 			boxColor = { Color3.new(1,0,0), 1 },
 			boxOutline = true,
 			boxOutlineColor = { COLOR3_BLACK, 1 },
 			boxFill = false,
 			boxFillColor = { Color3.new(1,0,0), 0.5 },
-			healthBar = false,
+			healthBar = true,
 			healthyColor = Color3.new(0,1,0),
 			dyingColor = Color3.new(1,0,0),
 			healthBarOutline = true,
@@ -766,7 +770,7 @@ local EspInterface = {
 			healthTextOutlineColor = COLOR3_BLACK,
 			box3d = false,
 			box3dColor = { Color3.new(1,0,0), 1 },
-			name = false,
+			name = true,
 			nameColor = { COLOR3_WHITE, 1 },
 			nameOutline = true,
 			nameOutlineColor = COLOR3_BLACK,
@@ -774,7 +778,7 @@ local EspInterface = {
 			weaponColor = { COLOR3_WHITE, 1 },
 			weaponOutline = true,
 			weaponOutlineColor = { COLOR3_BLACK, 1 },
-			distance = false,
+			distance = true,
 			distanceColor = { COLOR3_WHITE, 1 },
 			distanceOutline = true,
 			distanceOutlineColor = { COLOR3_BLACK, 1 },
