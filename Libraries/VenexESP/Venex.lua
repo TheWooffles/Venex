@@ -244,7 +244,7 @@ function EspObject:Construct()
 			healthBarOutline = self:_create("Line", { Thickness = 3 }),
 			healthBar = self:_create("Line", { Thickness = 1 }),
 			healthText = self:_create("Text", { Center = true, Size = 13, Font = 2, Outline = true }),
-			name = self:_create("Text", { Text = player.DisplayName or player.Name, Center = true, Size = 13, Font = 2, Outline = true }),
+			name = self:_create("Text", { Text = self.player.DisplayName or self.player.Name, Center = true, Size = 13, Font = 2, Outline = true }),
 			distance = self:_create("Text", { Center = true, Size = 13, Font = 2, Outline = true }),
 			weapon = self:_create("Text", { Center = true, Size = 13, Font = 2, Outline = true })
 		},
