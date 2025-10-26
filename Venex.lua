@@ -121,7 +121,6 @@ local targetPlayer = nil
 local connections = {}
 local FOVCircle = nil
 
--- Create FOV Circle
 local function CreateFOVCircle()
     if FOVCircle then
         FOVCircle:Remove()
@@ -140,10 +139,8 @@ end
 
 CreateFOVCircle()
 
--- Update FOV Circle Position (FIXED - Now follows mouse)
 local function UpdateFOVCircle()
     if FOVCircle and _G.AimLock.FOVEnabled then
-        -- Position circle at mouse cursor instead of screen center
         FOVCircle.Position = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
         FOVCircle.Radius = _G.AimLock.FOVSize
         FOVCircle.Color = _G.AimLock.FOVColor
@@ -155,7 +152,6 @@ local function UpdateFOVCircle()
     end
 end
 
--- Store original lighting settings
 local function SaveOriginalLighting()
     Config.World.OriginalLighting = {
         Brightness = Lighting.Brightness,
@@ -169,7 +165,6 @@ end
 
 SaveOriginalLighting()
 
--- Fullbright Function
 local function ApplyFullbright(enabled)
     if enabled then
         Lighting.Brightness = 2
@@ -191,43 +186,6 @@ local function ApplyNoShadows(enabled)
     Lighting.GlobalShadows = not enabled
 end
 
--- No Textures Function
-local textureConnections = {}
-local function ApplyNoTextures(enabled)
-    -- Disconnect existing connections
-    for _, conn in pairs(textureConnections) do
-        conn:Disconnect()
-    end
-    textureConnections = {}
-    
-    local function ProcessPart(part)
-        if enabled then
-            if part:IsA("MeshPart") then
-                part.TextureID = ""
-            elseif part:IsA("Part") or part:IsA("UnionOperation") then
-                for _, child in pairs(part:GetChildren()) do
-                    if child:IsA("Decal") or child:IsA("Texture") then
-                        child.Transparency = 1
-                    end
-                end
-            end
-        end
-    end
-    
-    if enabled then
-        -- Process existing parts
-        for _, part in pairs(workspace:GetDescendants()) do
-            ProcessPart(part)
-        end
-        
-        -- Monitor new parts
-        table.insert(textureConnections, workspace.DescendantAdded:Connect(function(part)
-            ProcessPart(part)
-        end))
-    end
-end
-
--- Helper function to check if a player is alive
 local function isPlayerAlive(player)
     if not player or not player.Character then return false end
     local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
@@ -251,22 +209,19 @@ local function isPlayerInCrosshair()
     if result and result.Instance then
         local hitPart = result.Instance
         local targetChar = hitPart:FindFirstAncestorOfClass("Model")
-        
+
         if targetChar then
             local targetPlayer = Players:GetPlayerFromCharacter(targetChar)
-            
+
             if targetPlayer and targetPlayer ~= LocalPlayer and isPlayerAlive(targetPlayer) then
-                -- Team check
+
                 if Config.TriggerBot.TeamCheck and targetPlayer.Team == LocalPlayer.Team then
                     return false, nil
                 end
-                
-                -- Wall check - FIXED: Exclude all player characters
+
                 if Config.TriggerBot.WallCheck then
                     local directRayParams = RaycastParams.new()
                     local filterList = {LocalPlayer.Character, targetChar}
-                    
-                    -- Add all player characters to filter list
                     for _, player in pairs(Players:GetPlayers()) do
                         if player.Character then
                             table.insert(filterList, player.Character)
@@ -298,23 +253,15 @@ end
 
 local function TriggerShoot()
     if not Config.TriggerBot.AutoShoot then return end
-    
     local currentTime = tick()
     if currentTime - lastShootTime < Config.TriggerBot.Delay then
         return
     end
-    
     lastShootTime = currentTime
-    
-    -- Try to find and trigger shooting mechanism
     pcall(function()
-        -- Method 1: Mouse1Click (most common)
         mouse1click()
     end)
-    
-    -- Alternative methods for different games
     pcall(function()
-        -- Method 2: Check for Tool activation
         local char = LocalPlayer.Character
         if char then
             local tool = char:FindFirstChildOfClass("Tool")
@@ -325,7 +272,6 @@ local function TriggerShoot()
     end)
 end
 
--- Check if target is visible - FIXED: Exclude all player characters
 local function isTargetVisible(targetHead, targetCharacter)
     if not _G.AimLock.WallCheck then
         return true
@@ -341,7 +287,6 @@ local function isTargetVisible(targetHead, targetCharacter)
     local raycastParams = RaycastParams.new()
     local filterList = {LocalPlayer.Character, targetCharacter}
     
-    -- Add all player characters to filter list
     for _, player in pairs(Players:GetPlayers()) do
         if player.Character then
             table.insert(filterList, player.Character)
@@ -356,11 +301,10 @@ local function isTargetVisible(targetHead, targetCharacter)
     return rayResult == nil
 end
 
--- Get closest player within FOV (FIXED - Now checks distance from mouse)
 local function getClosestPlayerInFOV()
     local closestPlayer = nil
     local shortestDistance = math.huge
-    local mousePos = Vector2.new(Mouse.X, Mouse.Y)  -- Use mouse position instead of screen center
+    local mousePos = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
     
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and isPlayerAlive(player) and player.Character:FindFirstChild("Head") then
@@ -375,9 +319,8 @@ local function getClosestPlayerInFOV()
             
             if onScreen then
                 local screenPosVec = Vector2.new(screenPos.X, screenPos.Y)
-                local distanceFromMouse = (mousePos - screenPosVec).Magnitude  -- Distance from mouse, not center
+                local distanceFromMouse = (mousePos - screenPosVec).Magnitude
                 
-                -- Check if within FOV circle
                 if distanceFromMouse <= _G.AimLock.FOVSize then
                     if isTargetVisible(head, player.Character) then
                         if distanceFromMouse < shortestDistance then
@@ -702,21 +645,6 @@ World:Toggle({
 	end,
 	Flag = 'WorldNoShadows'
 })
-World:Toggle({
-	Title = 'No Textures',
-	Value = false,
-	Config = true,
-	CallBack = function(v)
-		Config.World.NoTextures = v
-		ApplyNoTextures(v)
-		syde:Notify({
-			Title = 'No Textures',
-			Content = v and 'Enabled - Performance Mode' or 'Disabled',
-			Duration = 1.5
-		})
-	end,
-	Flag = 'WorldNoTextures'
-})
 World:Button({
 	Title = 'Reset Lighting',
 	Description = 'Restore Original Lighting Settings',
@@ -725,10 +653,8 @@ World:Button({
 	CallBack = function()
 		Config.World.Fullbright = false
 		Config.World.NoShadows = false
-		Config.World.NoTextures = false
 		ApplyFullbright(false)
 		ApplyNoShadows(false)
-		ApplyNoTextures(false)
 		syde:Notify({
 			Title = 'Lighting Reset',
 			Content = 'All world settings restored',
@@ -796,7 +722,6 @@ Misc:Button({
 	end,
 })
 
--- FOV Visibility Toggle
 connections.InputBegan = UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.KeyCode == _G.AimLock.Keybind and not gameProcessed then
         _G.AimLock.FOVEnabled = not _G.AimLock.FOVEnabled
@@ -809,12 +734,9 @@ connections.InputBegan = UserInputService.InputBegan:Connect(function(input, gam
     end
 end)
 
--- Main Aim Lock Loop
 connections.RenderStepped = RunService.RenderStepped:Connect(function()
-    -- Update FOV Circle
     UpdateFOVCircle()
     
-    -- Check if local player is alive
     if not isPlayerAlive(LocalPlayer) then
         targetPlayer = nil
         _G.AimLock.TargetPlayer = nil
@@ -822,7 +744,6 @@ connections.RenderStepped = RunService.RenderStepped:Connect(function()
     end
     
     if _G.AimLock.Enabled then
-        -- Find closest player in FOV
         local newTarget = getClosestPlayerInFOV()
         
         if newTarget then
@@ -832,7 +753,6 @@ connections.RenderStepped = RunService.RenderStepped:Connect(function()
             local head = targetPlayer.Character.Head
             local headPos = head.Position
             
-            -- Apply prediction
             if targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
                 local hrp = targetPlayer.Character.HumanoidRootPart
                 local velocity = hrp.Velocity or hrp.AssemblyLinearVelocity or Vector3.new(0, 0, 0)
@@ -862,7 +782,6 @@ connections.RenderStepped = RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Trigger Bot Main Loop
 connections.TriggerBot = RunService.RenderStepped:Connect(function()
     if triggerBotActive and Config.TriggerBot.Enabled then
         local hasTarget, target = isPlayerInCrosshair()
@@ -890,7 +809,6 @@ _G.UnloadVantage = function()
     _G.AimLock.TargetPlayer = nil
     Config.TriggerBot.Enabled = false
     
-    -- Reset world settings
     ApplyFullbright(false)
     ApplyNoShadows(false)
     ApplyNoTextures(false)
