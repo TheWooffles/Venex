@@ -493,9 +493,9 @@ function EspObject:Render()
 	if visible.distance.Visible then
 		local distance = visible.distance
 		distance.Text = round(self.distance) .. " studs"
-		distance.Color = parseColor(self, options.distanceColor[1])
+		distance.Color = Color3.fromRGB(255,255,255)--parseColor(self, options.distanceColor[1])
 		distance.Transparency = options.distanceColor[2]
-		-- distance.OutlineColor = parseColor(self, options.distanceOutlineColor, true)
+		distance.OutlineColor = Color3.fromRGB(0,0,0) --parseColor(self, options.distanceOutlineColor, true)
 		distance.Position = (corners.bottomLeft + corners.bottomRight) * 0.5 + DISTANCE_OFFSET
 	end
 
