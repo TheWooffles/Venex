@@ -144,7 +144,7 @@ CreateFOVCircle()
 local function UpdateFOVCircle()
     if FOVCircle and _G.AimLock.FOVEnabled then
         -- Position circle at mouse cursor instead of screen center
-        FOVCircle.Position = Vector2.new(Mouse.X, Mouse.Y)
+        FOVCircle.Position = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
         FOVCircle.Radius = _G.AimLock.FOVSize
         FOVCircle.Color = _G.AimLock.FOVColor
         FOVCircle.Transparency = _G.AimLock.FOVTransparency
